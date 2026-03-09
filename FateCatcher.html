@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fate Catcher</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;1,400&family=Raleway:wght@100;200;300&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:#F5F2EE;
+    width:100vw;height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;z-index:200;pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    mix-blend-mode:multiply;
+  }
+  .poster{position:relative;width:960px;height:620px;overflow:hidden;}
+
+  .figures{
+    position:absolute;bottom:0;left:0;
+    width:510px;height:100%;
+    display:flex;align-items:flex-end;justify-content:center;
+    padding-left:10px;gap:6px;
+  }
+  .fig{
+    display:flex;flex-direction:column;align-items:center;
+    opacity:0;animation:riseIn 1.4s cubic-bezier(0.22,1,0.36,1) forwards;
+  }
+  .fig:first-child{z-index:2;animation-delay:0.1s;}
+  .fig:last-child{z-index:3;animation-delay:0.28s;}
+  .fig svg{display:block;}
+  .fig:first-child svg{width:195px;height:auto;}
+  .fig:last-child svg{width:210px;height:auto;}
+  .fig-name{
+    font-family:'Raleway',sans-serif;font-weight:200;
+    font-size:9px;letter-spacing:4px;color:#8a8680;
+    text-transform:uppercase;
+    margin-top:6px;margin-bottom:14px;
+    opacity:0;animation:fadeIn 0.8s ease 1.4s forwards;
+  }
+
+  .blue-wrap{animation:blueFloat 4.5s ease-in-out infinite;}
+  @keyframes blueFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+  .red-wrap{animation:redBounce 2s ease-in-out infinite;}
+  @keyframes redBounce{0%,100%{transform:translateY(0);}35%{transform:translateY(-12px);}55%{transform:translateY(-2px);}}
+  @keyframes blink{0%,90%,100%{transform:scaleY(1);}95%{transform:scaleY(.06);}}
+  @keyframes glowSoft{0%,100%{opacity:.3;}50%{opacity:.5;}}
+  @keyframes glowBright{0%,100%{opacity:.4;}50%{opacity:.75;}}
+  @keyframes earTwitchL{0%,85%,100%{transform:rotate(0deg);}90%{transform:rotate(-8deg);}95%{transform:rotate(3deg);}}
+  @keyframes earTwitchR{0%,85%,100%{transform:rotate(0deg);}90%{transform:rotate(8deg);}95%{transform:rotate(-3deg);}}
+  @keyframes riseIn{from{opacity:0;transform:translateY(26px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes fadeIn{to{opacity:1;}}
+  @keyframes slideIn{from{opacity:0;transform:translateX(18px);}to{opacity:1;transform:translateX(0);}}
+
+  .rule{position:absolute;top:56px;bottom:56px;left:490px;width:1px;background:linear-gradient(to bottom,transparent,#d0ccc6 15%,#d0ccc6 85%,transparent);opacity:0.5;}
+  .right{position:absolute;top:0;right:0;width:470px;height:100%;display:flex;flex-direction:column;justify-content:center;padding:0 52px 0 30px;}
+  .label-top{font-family:'Raleway',sans-serif;font-weight:200;font-size:10px;letter-spacing:5px;color:#a8a4a0;text-transform:uppercase;margin-bottom:20px;text-align:right;opacity:0;animation:fadeIn 0.6s ease 0.3s forwards;}
+  .w-precision{font-family:'Bebas Neue',sans-serif;font-size:108px;line-height:0.82;color:#2D2926;letter-spacing:3px;text-align:right;display:block;opacity:0;animation:slideIn 0.55s ease 0.48s forwards;}
+  .w-serif{font-family:'Playfair Display',serif;font-style:italic;font-size:32px;line-height:1;color:#6A6560;text-align:right;display:block;margin-top:2px;margin-bottom:4px;opacity:0;animation:slideIn 0.5s ease 0.64s forwards;}
+  .w-realtime{font-family:'Bebas Neue',sans-serif;font-size:82px;line-height:0.86;color:#2D2926;letter-spacing:2px;text-align:right;display:block;opacity:0;animation:slideIn 0.5s ease 0.78s forwards;}
+  .w-fine{font-family:'Raleway',sans-serif;font-weight:200;font-size:11px;letter-spacing:5px;color:#9A9590;text-transform:uppercase;text-align:right;display:block;margin-top:10px;margin-bottom:4px;opacity:0;animation:slideIn 0.5s ease 0.92s forwards;}
+  .w-insight{font-family:'Bebas Neue',sans-serif;font-size:70px;line-height:0.9;color:#3D3A36;letter-spacing:2px;text-align:right;display:block;opacity:0;animation:slideIn 0.5s ease 1.06s forwards;}
+  .brand{position:absolute;top:32px;left:34px;z-index:10;opacity:0;animation:fadeIn 0.8s ease 0.05s forwards;}
+  .brand-name{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:7px;color:#A8A4A0;}
+  .brand-rule{width:40px;height:1px;background:#C8C4BE;margin-top:5px;}
+  .brand-tagline{font-family:'Raleway',sans-serif;font-weight:200;font-size:7.5px;letter-spacing:2.5px;color:#BBB8B2;text-transform:uppercase;margin-top:4px;}
+  .bottom{position:absolute;bottom:28px;right:52px;text-align:right;opacity:0;animation:fadeIn 0.8s ease 1.6s forwards;}
+  .bottom-text{font-family:'Raleway',sans-serif;font-weight:200;font-size:9px;letter-spacing:3.5px;color:#ACA8A2;text-transform:uppercase;}
+  .corner-arrow{display:inline-block;width:22px;height:22px;border:1px solid #B0ACA6;text-align:center;line-height:20px;font-size:11px;color:#B0ACA6;margin-left:10px;vertical-align:middle;cursor:pointer;transition:all 0.3s ease;}
+  .corner-arrow:hover{background:#2D2926;color:#F5F2EE;border-color:#2D2926;}
+</style>
+</head>
+<body>
+<div class="poster">
+
+  <div class="brand">
+    <div class="brand-name">Fate Catcher</div>
+    <div class="brand-rule"></div>
+    <div class="brand-tagline">The future belongs to those who see it first</div>
+  </div>
+
+  <div class="figures">
+
+    <!-- ══ BLUE BEAR — calm, round, small ears ══ -->
+    <div class="fig">
+      <div class="blue-wrap">
+        <svg width="180" height="270" viewBox="0 0 180 270" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="bBody" cx="38%" cy="30%" r="68%">
+              <stop offset="0%" stop-color="#C0D8F0"/>
+              <stop offset="45%" stop-color="#82B4E0"/>
+              <stop offset="100%" stop-color="#4888BF"/>
+            </radialGradient>
+            <radialGradient id="bBelly" cx="45%" cy="40%" r="50%">
+              <stop offset="0%" stop-color="#E8F2FC" stop-opacity=".55"/>
+              <stop offset="100%" stop-color="#82B4E0" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="bShade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2E5F8A" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#2E5F8A" stop-opacity=".22"/>
+            </linearGradient>
+            <radialGradient id="bEye" cx="50%" cy="42%" r="50%">
+              <stop offset="0%" stop-color="#E8F4FF"/>
+              <stop offset="60%" stop-color="#90C8F0"/>
+              <stop offset="100%" stop-color="#4888BF" stop-opacity=".3"/>
+            </radialGradient>
+            <radialGradient id="bHalo" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#90C8F0" stop-opacity=".3"/>
+              <stop offset="100%" stop-color="#90C8F0" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="b1"><feGaussianBlur stdDeviation="3"/></filter>
+            <filter id="b2"><feGaussianBlur stdDeviation="6"/></filter>
+            <filter id="b3"><feGaussianBlur stdDeviation="1"/></filter>
+          </defs>
+
+          <!-- ground shadow -->
+          <ellipse cx="90" cy="258" rx="50" ry="8" fill="#4888BF" opacity=".07" filter="url(#b2)"/>
+
+          <!-- BEAR EARS (small, round) -->
+          <circle cx="52" cy="50" r="18" fill="#5A9ED0"/>
+          <circle cx="128" cy="50" r="18" fill="#5A9ED0"/>
+          <!-- inner ear -->
+          <circle cx="52" cy="52" r="10" fill="#A0CCE8" opacity=".5"/>
+          <circle cx="128" cy="52" r="10" fill="#A0CCE8" opacity=".5"/>
+
+          <!-- BODY (round, chubby bear blob) -->
+          <ellipse cx="90" cy="160" rx="62" ry="92" fill="url(#bBody)"/>
+          <ellipse cx="90" cy="160" rx="62" ry="92" fill="url(#bShade)"/>
+          <!-- belly -->
+          <ellipse cx="86" cy="165" rx="36" ry="44" fill="url(#bBelly)"/>
+
+          <!-- 3D highlights -->
+          <ellipse cx="70" cy="95" rx="26" ry="20" fill="white" opacity=".2" transform="rotate(-10,70,95)"/>
+          <ellipse cx="66" cy="88" rx="13" ry="9" fill="white" opacity=".12" transform="rotate(-10,66,88)"/>
+          <ellipse cx="140" cy="145" rx="5" ry="38" fill="white" opacity=".08" transform="rotate(4,140,145)"/>
+
+          <!-- face region -->
+          <ellipse cx="90" cy="115" rx="36" ry="25" fill="#3A78AA" opacity=".1"/>
+
+          <!-- SNOUT (small round muzzle — bear!) -->
+          <ellipse cx="90" cy="130" rx="14" ry="10" fill="#A0CCE8" opacity=".35"/>
+          <!-- tiny nose -->
+          <ellipse cx="90" cy="127" rx="4.5" ry="3" fill="#3A6890"/>
+
+          <!-- eye halos -->
+          <ellipse cx="74" cy="114" rx="13" ry="10" fill="url(#bHalo)" filter="url(#b1)" style="animation:glowSoft 4.5s ease-in-out infinite;"/>
+          <ellipse cx="106" cy="114" rx="13" ry="10" fill="url(#bHalo)" filter="url(#b1)" style="animation:glowSoft 4.5s ease-in-out .6s infinite;"/>
+
+          <!-- EYES (half-closed, calm, sleepy bear) -->
+          <g style="transform-origin:74px 114px;animation:blink 7s ease-in-out infinite;">
+            <ellipse cx="74" cy="114" rx="10" ry="8" fill="url(#bEye)"/>
+            <!-- heavy eyelid covers top — sleepy -->
+            <ellipse cx="74" cy="109.5" rx="11" ry="6" fill="#5A9ED0"/>
+            <ellipse cx="74" cy="117" rx="5" ry="2.5" fill="#E8F4FF" opacity=".4" filter="url(#b3)"/>
+          </g>
+          <g style="transform-origin:106px 114px;animation:blink 7s ease-in-out .5s infinite;">
+            <ellipse cx="106" cy="114" rx="10" ry="8" fill="url(#bEye)"/>
+            <ellipse cx="106" cy="109.5" rx="11" ry="6" fill="#5A9ED0"/>
+            <ellipse cx="106" cy="117" rx="5" ry="2.5" fill="#E8F4FF" opacity=".4" filter="url(#b3)"/>
+          </g>
+        </svg>
+      </div>
+      <div class="fig-name">Blue · Bear</div>
+    </div>
+
+    <!-- ══ RED BUNNY — happy, tall ears, bouncy ══ -->
+    <div class="fig">
+      <div class="red-wrap">
+        <svg width="180" height="290" viewBox="0 0 180 290" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="rBody" cx="38%" cy="30%" r="68%">
+              <stop offset="0%" stop-color="#FFB8B8"/>
+              <stop offset="45%" stop-color="#F06868"/>
+              <stop offset="100%" stop-color="#D03838"/>
+            </radialGradient>
+            <radialGradient id="rBelly" cx="45%" cy="40%" r="50%">
+              <stop offset="0%" stop-color="#FFF2F2" stop-opacity=".55"/>
+              <stop offset="100%" stop-color="#F06868" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="rShade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#7A1818" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#7A1818" stop-opacity=".22"/>
+            </linearGradient>
+            <radialGradient id="rEye" cx="50%" cy="42%" r="50%">
+              <stop offset="0%" stop-color="#FFF2F2"/>
+              <stop offset="60%" stop-color="#FF9898"/>
+              <stop offset="100%" stop-color="#E05050" stop-opacity=".3"/>
+            </radialGradient>
+            <radialGradient id="rHalo" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#FF9898" stop-opacity=".35"/>
+              <stop offset="100%" stop-color="#FF9898" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="rCheek" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#FFB0B0" stop-opacity=".55"/>
+              <stop offset="100%" stop-color="#FFB0B0" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="rEarFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#F07878"/>
+              <stop offset="100%" stop-color="#D84848"/>
+            </linearGradient>
+            <filter id="r1"><feGaussianBlur stdDeviation="3"/></filter>
+            <filter id="r2"><feGaussianBlur stdDeviation="6"/></filter>
+            <filter id="r3"><feGaussianBlur stdDeviation="1"/></filter>
+          </defs>
+
+          <!-- ground shadow -->
+          <ellipse cx="90" cy="278" rx="46" ry="7" fill="#D03838" opacity=".07" filter="url(#r2)"/>
+
+          <!-- BUNNY EARS (long, tall, floppy-cute) -->
+          <g style="transform-origin:66px 70px;animation:earTwitchL 4s ease-in-out infinite;">
+            <!-- left ear -->
+            <ellipse cx="66" cy="32" rx="14" ry="40" fill="url(#rEarFill)" transform="rotate(-10,66,32)"/>
+            <!-- inner ear -->
+            <ellipse cx="66" cy="32" rx="8" ry="30" fill="#FFB8B8" opacity=".45" transform="rotate(-10,66,32)"/>
+            <!-- ear highlight -->
+            <ellipse cx="62" cy="18" rx="4" ry="16" fill="white" opacity=".12" transform="rotate(-12,62,18)"/>
+          </g>
+          <g style="transform-origin:114px 70px;animation:earTwitchR 4s ease-in-out .3s infinite;">
+            <!-- right ear -->
+            <ellipse cx="114" cy="32" rx="14" ry="40" fill="url(#rEarFill)" transform="rotate(10,114,32)"/>
+            <ellipse cx="114" cy="32" rx="8" ry="30" fill="#FFB8B8" opacity=".45" transform="rotate(10,114,32)"/>
+            <ellipse cx="118" cy="18" rx="4" ry="16" fill="white" opacity=".12" transform="rotate(12,118,18)"/>
+          </g>
+
+          <!-- BODY (round, slightly egg-shaped — bunny blob) -->
+          <ellipse cx="90" cy="178" rx="58" ry="88" fill="url(#rBody)"/>
+          <ellipse cx="90" cy="178" rx="58" ry="88" fill="url(#rShade)"/>
+          <!-- belly -->
+          <ellipse cx="86" cy="182" rx="34" ry="42" fill="url(#rBelly)"/>
+
+          <!-- 3D highlights -->
+          <ellipse cx="70" cy="118" rx="26" ry="20" fill="white" opacity=".2" transform="rotate(-10,70,118)"/>
+          <ellipse cx="66" cy="110" rx="13" ry="9" fill="white" opacity=".12" transform="rotate(-10,66,110)"/>
+          <ellipse cx="136" cy="165" rx="5" ry="38" fill="white" opacity=".08" transform="rotate(4,136,165)"/>
+
+          <!-- face region -->
+          <ellipse cx="90" cy="135" rx="38" ry="26" fill="#9A2020" opacity=".08"/>
+
+          <!-- BUNNY NOSE (small triangle/dot) -->
+          <ellipse cx="90" cy="148" rx="4" ry="3" fill="#C04040"/>
+          <!-- whisker dots -->
+          <circle cx="74" cy="150" r="1.5" fill="#D06060" opacity=".3"/>
+          <circle cx="70" cy="146" r="1.5" fill="#D06060" opacity=".25"/>
+          <circle cx="106" cy="150" r="1.5" fill="#D06060" opacity=".3"/>
+          <circle cx="110" cy="146" r="1.5" fill="#D06060" opacity=".25"/>
+
+          <!-- Cheeks (happy blush) -->
+          <ellipse cx="62" cy="144" rx="13" ry="9" fill="url(#rCheek)"/>
+          <ellipse cx="118" cy="144" rx="13" ry="9" fill="url(#rCheek)"/>
+
+          <!-- eye halos -->
+          <ellipse cx="74" cy="130" rx="14" ry="11" fill="url(#rHalo)" filter="url(#r1)" style="animation:glowBright 2s ease-in-out infinite;"/>
+          <ellipse cx="106" cy="130" rx="14" ry="11" fill="url(#rHalo)" filter="url(#r1)" style="animation:glowBright 2s ease-in-out .3s infinite;"/>
+
+          <!-- EYES (happy squint — curved up, smile-eyes) -->
+          <ellipse cx="74" cy="130" rx="11" ry="10" fill="url(#rEye)"/>
+          <!-- bottom eyelid creates happy ^^ shape -->
+          <ellipse cx="74" cy="136" rx="12" ry="5.5" fill="#D85050"/>
+          <!-- bright glow top -->
+          <ellipse cx="74" cy="128" rx="6" ry="3.5" fill="#FFF2F2" opacity=".5" filter="url(#r3)"/>
+
+          <ellipse cx="106" cy="130" rx="11" ry="10" fill="url(#rEye)"/>
+          <ellipse cx="106" cy="136" rx="12" ry="5.5" fill="#D85050"/>
+          <ellipse cx="106" cy="128" rx="6" ry="3.5" fill="#FFF2F2" opacity=".5" filter="url(#r3)"/>
+        </svg>
+      </div>
+      <div class="fig-name">Red · Bunny</div>
+    </div>
+
+  </div>
+
+  <div class="rule"></div>
+
+  <div class="right">
+    <span class="label-top">Engineered for clarity</span>
+    <span class="w-precision">Precision</span>
+    <span class="w-serif">meets</span>
+    <span class="w-realtime">Real–Time</span>
+    <span class="w-fine">Delivering actionable</span>
+    <span class="w-insight">Insight</span>
+  </div>
+
+  <div class="bottom">
+    <span class="bottom-text">Blue = Bear · Red = Bunny</span>
+    <span class="corner-arrow">→</span>
+  </div>
+
+</div>
+</body>
+</html>
