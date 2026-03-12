@@ -14,6 +14,7 @@ load_dotenv()
 
 from fetchers import fetch_naver_news, fetch_dart_disclosures
 from news_scanner import scan_news
+from scorer import score_scouted
 
 
 def run(source: str = "all") -> dict:
@@ -21,7 +22,7 @@ def run(source: str = "all") -> dict:
     raw_parts = []
 
     if source in ("all", "naver"):
-        print("[1/3] 네이버 뉴스 수집 중...")
+        print("[1/4] 네이버 뉴스 수집 중...")
         naver_data = fetch_naver_news()
         count = len(naver_data.strip().split("\n")) if naver_data.strip() else 0
         print(f"      → {count}건 수집 완료")
@@ -29,7 +30,7 @@ def run(source: str = "all") -> dict:
             raw_parts.append("=== 네이버 뉴스 ===\n" + naver_data)
 
     if source in ("all", "dart"):
-        print("[2/3] DART 공시 수집 중...")
+        print("[2/4] DART 공시 수집 중...")
         dart_data = fetch_dart_disclosures()
         if dart_data.startswith("[ERROR]") or dart_data.startswith("[INFO]"):
             print(f"      → {dart_data}")
@@ -44,8 +45,17 @@ def run(source: str = "all") -> dict:
 
     combined = "\n\n".join(raw_parts)
 
-    print(f"[3/3] GPT-4o-mini 분석 중... (총 {len(combined)}자)")
+    print(f"[3/4] GPT-4o-mini Stage 1 분석 중... (총 {len(combined)}자)")
     result = scan_news(combined)
+
+    scouted = result.get("scouted_list", [])
+    if scouted:
+        print(f"[4/4] Stage 2 스코어링 중... ({len(scouted)}개 항목)")
+        survivors = score_scouted(scouted)
+        print(f"      → {len(survivors)}개 생존 (8점 이상)")
+        result["survivors"] = survivors
+    else:
+        result["survivors"] = []
 
     return result
 
@@ -68,7 +78,8 @@ if __name__ == "__main__":
 
     print("\n" + "=" * 50)
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    print(f"\n총 {len(result.get('scouted_list', []))}개 이슈 엄선 완료.")
+    survivors = result.get("survivors", [])
+    print(f"\n총 {len(result.get('scouted_list', []))}개 스캔 → {len(survivors)}개 최종 생존.")
 
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:

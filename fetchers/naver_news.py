@@ -38,7 +38,7 @@ def _search(query: str, display: int = 20, sort: str = "date") -> list[dict]:
     return resp.json().get("items", [])
 
 
-def fetch_naver_news(queries: list[str] | None = None, display: int = 10) -> str:
+def fetch_naver_news(queries: list[str] | None = None, display: int = 20) -> str:
     """여러 키워드로 뉴스를 수집하여 텍스트로 반환한다.
 
     Returns:
