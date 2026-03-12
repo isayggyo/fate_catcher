@@ -1,9 +1,9 @@
-"""Fate Catcher 파이프라인: 뉴스 수집 → GPT 필터링 → 결과 출력.
+"""Fate Catcher 파이프라인: 뉴스 수집 → GPT 필터링 → 스코어링 → 결과 출력.
 
 사용법:
-    python pipeline.py                  # 네이버 + DART 전체 실행
-    python pipeline.py --source naver   # 네이버 뉴스만
-    python pipeline.py --source dart    # DART 공시만
+    python pipeline.py                    # 국내 + 글로벌 전체 실행
+    python pipeline.py --source domestic  # 국내(네이버+DART)만
+    python pipeline.py --source global    # 글로벌(Finnhub+FMP+AlphaVantage)만
 """
 
 import argparse
@@ -12,47 +12,66 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fetchers import fetch_naver_news, fetch_dart_disclosures
+from fetchers import (
+    fetch_naver_news,
+    fetch_dart_disclosures,
+    fetch_finnhub_news,
+    fetch_fmp_news,
+    fetch_alpha_vantage_news,
+)
 from news_scanner import scan_news
 from scorer import score_scouted
 
+# ── 소스 그룹 정의 ──
+DOMESTIC_SOURCES = [
+    ("네이버 뉴스", fetch_naver_news),
+    ("DART 공시", fetch_dart_disclosures),
+]
 
-def run(source: str = "all") -> dict:
-    """뉴스 수집 + GPT 필터링 파이프라인 실행."""
-    raw_parts = []
+GLOBAL_SOURCES = [
+    ("Finnhub 마켓뉴스", fetch_finnhub_news),
+    ("FMP 주식뉴스", fetch_fmp_news),
+    ("Alpha Vantage 뉴스", fetch_alpha_vantage_news),
+]
 
-    if source in ("all", "naver"):
-        print("[1/4] 네이버 뉴스 수집 중...")
-        naver_data = fetch_naver_news()
-        count = len(naver_data.strip().split("\n")) if naver_data.strip() else 0
-        print(f"      → {count}건 수집 완료")
-        if naver_data.strip():
-            raw_parts.append("=== 네이버 뉴스 ===\n" + naver_data)
 
-    if source in ("all", "dart"):
-        print("[2/4] DART 공시 수집 중...")
-        dart_data = fetch_dart_disclosures()
-        if dart_data.startswith("[ERROR]") or dart_data.startswith("[INFO]"):
-            print(f"      → {dart_data}")
-        else:
-            count = len(dart_data.strip().split("\n"))
-            print(f"      → {count}건 수집 완료")
-            raw_parts.append("=== DART 공시 ===\n" + dart_data)
+def _collect(sources: list, group_label: str) -> str:
+    """소스 리스트에서 데이터를 수집하여 합친 텍스트를 반환한다."""
+    parts = []
+    for i, (label, fetcher) in enumerate(sources, 1):
+        print(f"  [{i}/{len(sources)}] {label} 수집 중...")
+        try:
+            data = fetcher()
+        except Exception as e:
+            print(f"         → 실패: {e}")
+            continue
 
-    if not raw_parts:
-        print("[ERROR] 수집된 데이터가 없습니다.")
-        return {"scouted_list": []}
+        if data.startswith("[ERROR]") or data.startswith("[INFO]"):
+            print(f"         → {data}")
+            continue
 
-    combined = "\n\n".join(raw_parts)
+        if data.strip():
+            count = len(data.strip().split("\n"))
+            print(f"         → {count}건 수집 완료")
+            parts.append(f"=== {label} ===\n" + data)
 
-    print(f"[3/4] GPT-4o-mini Stage 1 분석 중... (총 {len(combined)}자)")
+    return "\n\n".join(parts)
+
+
+def _run_pipeline(combined: str, label: str) -> dict:
+    """수집된 텍스트에 GPT Stage 1 + Stage 2를 적용한다."""
+    if not combined.strip():
+        print(f"[{label}] 수집된 데이터가 없습니다. 스킵.")
+        return {"scouted_list": [], "survivors": []}
+
+    print(f"[{label}] GPT-4o-mini Stage 1 분석 중... (총 {len(combined)}자)")
     result = scan_news(combined)
 
     scouted = result.get("scouted_list", [])
     if scouted:
-        print(f"[4/4] Stage 2 스코어링 중... ({len(scouted)}개 항목)")
+        print(f"[{label}] Stage 2 스코어링 중... ({len(scouted)}개 항목)")
         survivors = score_scouted(scouted)
-        print(f"      → {len(survivors)}개 생존 (8점 이상)")
+        print(f"         → {len(survivors)}개 생존 (8점 이상)")
         result["survivors"] = survivors
     else:
         result["survivors"] = []
@@ -60,13 +79,53 @@ def run(source: str = "all") -> dict:
     return result
 
 
+def run(source: str = "all") -> dict:
+    """뉴스 수집 + GPT 필터링 파이프라인 실행.
+
+    source: 'all' | 'domestic' | 'global'
+    """
+    domestic_result = {"scouted_list": [], "survivors": []}
+    global_result = {"scouted_list": [], "survivors": []}
+
+    # ── 국내 파이프라인 ──
+    if source in ("all", "domestic"):
+        print("=" * 50)
+        print("📌 [국내 파이프라인] 네이버 뉴스 + DART 공시")
+        print("=" * 50)
+        domestic_text = _collect(DOMESTIC_SOURCES, "국내")
+        domestic_result = _run_pipeline(domestic_text, "국내")
+
+    # ── 글로벌 파이프라인 ──
+    if source in ("all", "global"):
+        print("=" * 50)
+        print("🌐 [글로벌 파이프라인] Finnhub + FMP + Alpha Vantage")
+        print("=" * 50)
+        global_text = _collect(GLOBAL_SOURCES, "글로벌")
+        global_result = _run_pipeline(global_text, "글로벌")
+
+    # ── 결과 합산 ──
+    merged = {
+        "domestic": domestic_result,
+        "global": global_result,
+        "scouted_list": (
+            domestic_result.get("scouted_list", [])
+            + global_result.get("scouted_list", [])
+        ),
+        "survivors": (
+            domestic_result.get("survivors", [])
+            + global_result.get("survivors", [])
+        ),
+    }
+    return merged
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fate Catcher 뉴스 파이프라인")
     parser.add_argument(
         "--source",
-        choices=["all", "naver", "dart"],
+        choices=["all", "domestic", "global"],
         default="all",
-        help="데이터 소스 선택 (기본: all)",
+        help="데이터 소스 그룹 선택 (기본: all)",
     )
     parser.add_argument(
         "--output", "-o",
@@ -77,9 +136,18 @@ if __name__ == "__main__":
     result = run(source=args.source)
 
     print("\n" + "=" * 50)
+    d_cnt = len(result["domestic"].get("scouted_list", []))
+    g_cnt = len(result["global"].get("scouted_list", []))
+    d_sur = len(result["domestic"].get("survivors", []))
+    g_sur = len(result["global"].get("survivors", []))
+    total_scouted = len(result["scouted_list"])
+    total_survivors = len(result["survivors"])
+
+    print(f"국내: {d_cnt}개 스캔 → {d_sur}개 생존")
+    print(f"글로벌: {g_cnt}개 스캔 → {g_sur}개 생존")
+    print(f"합계: {total_scouted}개 스캔 → {total_survivors}개 최종 생존")
+    print("=" * 50)
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    survivors = result.get("survivors", [])
-    print(f"\n총 {len(result.get('scouted_list', []))}개 스캔 → {len(survivors)}개 최종 생존.")
 
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:

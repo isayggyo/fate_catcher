@@ -43,7 +43,7 @@ SYSTEM_PROMPT = """# ROLE
 
 
 def scan_news(raw_news_data: str) -> dict:
-    """GPT-4o-mini로 뉴스 데이터를 필터링하여 예측 가능한 이슈 15개를 엄선한다."""
+    """GPT-4o-mini로 뉴스 데이터를 필터링하여 예측 가능한 이슈 30~40개를 엄선한다."""
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
