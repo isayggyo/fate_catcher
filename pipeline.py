@@ -58,7 +58,7 @@ def _collect(sources: list, group_label: str) -> str:
     return "\n\n".join(parts)
 
 
-def _run_pipeline(combined: str, label: str) -> dict:
+def _run_pipeline(combined: str, label: str, domestic: bool = False) -> dict:
     """수집된 텍스트에 GPT Stage 1 + Stage 2를 적용한다."""
     if not combined.strip():
         print(f"[{label}] 수집된 데이터가 없습니다. 스킵.")
@@ -70,7 +70,7 @@ def _run_pipeline(combined: str, label: str) -> dict:
     scouted = result.get("scouted_list", [])
     if scouted:
         print(f"[{label}] Stage 2 스코어링 중... ({len(scouted)}개 항목)")
-        survivors = score_scouted(scouted)
+        survivors = score_scouted(scouted, domestic=domestic)
         print(f"         → {len(survivors)}개 생존 (8점 이상)")
         result["survivors"] = survivors
     else:
@@ -93,7 +93,7 @@ def run(source: str = "all") -> dict:
         print("📌 [국내 파이프라인] 네이버 뉴스 + DART 공시")
         print("=" * 50)
         domestic_text = _collect(DOMESTIC_SOURCES, "국내")
-        domestic_result = _run_pipeline(domestic_text, "국내")
+        domestic_result = _run_pipeline(domestic_text, "국내", domestic=True)
 
     # ── 글로벌 파이프라인 ──
     if source in ("all", "global"):
@@ -135,21 +135,23 @@ if __name__ == "__main__":
 
     result = run(source=args.source)
 
-    print("\n" + "=" * 50)
-    d_cnt = len(result["domestic"].get("scouted_list", []))
-    g_cnt = len(result["global"].get("scouted_list", []))
-    d_sur = len(result["domestic"].get("survivors", []))
-    g_sur = len(result["global"].get("survivors", []))
     total_scouted = len(result["scouted_list"])
-    total_survivors = len(result["survivors"])
+    survivors = result["survivors"]
 
-    print(f"국내: {d_cnt}개 스캔 → {d_sur}개 생존")
-    print(f"글로벌: {g_cnt}개 스캔 → {g_sur}개 생존")
-    print(f"합계: {total_scouted}개 스캔 → {total_survivors}개 최종 생존")
+    print("\n" + "=" * 50)
+    print(f" {total_scouted}개 스캔 -> {len(survivors)}개 생존")
     print("=" * 50)
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    if survivors:
+        for i, s in enumerate(survivors, 1):
+            print(f"  [{s['score']}] {s['headline']}")
+        print("=" * 50)
+    else:
+        print("  생존자 없음")
+        print("=" * 50)
 
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
         print(f"결과 저장: {args.output}")
+
