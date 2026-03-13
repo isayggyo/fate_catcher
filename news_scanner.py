@@ -20,6 +20,8 @@ SYSTEM_PROMPT = """# ROLE
 - 연애/가십, 스포츠 경기 결과, 단순 사고/재해, 연예인 근황, 문화/예술 전시.
 - "성공적일 것으로 보인다"와 같은 주관적이고 모호한 서술만 있는 뉴스.
 - 같은 사건/토픽을 다루는 중복 기사는 가장 핵심적인 1개만 남기고 나머지는 버려라.
+- "중복"의 기준: 동일 종목, 동일 이슈, 동일 지표, 동일 사건이면 전부 중복이다. 예) "코스피 급락" + "코스피 하락 원인 분석" = 중복. "환율 1500원 돌파" + "유가 급등에 환율 상승" = 중복. "비트코인 7만2000달러 돌파" + "비트코인 강세장" = 중복.
+- 최종 리스트에서 같은 headline이나 source_url이 2번 이상 등장하면 안 된다.
 
 # CATEGORIES
 - TECH: AI 반도체, 대형 언어 모델(LLM), 빅테크 규제.
@@ -42,6 +44,31 @@ SYSTEM_PROMPT = """# ROLE
 }"""
 
 
+def _dedup(scouted: list) -> list:
+    """headline + source_url 기준으로 중복 제거. 유사 headline도 잡는다."""
+    from difflib import SequenceMatcher
+    seen_urls = set()
+    unique = []
+    for item in scouted:
+        url = item.get("source_url", "")
+        headline = item.get("headline", "")
+        # 1) 같은 URL이면 스킵
+        if url and url in seen_urls:
+            continue
+        # 2) 기존 headline과 유사도 0.55 이상이면 스킵
+        is_dup = False
+        for kept in unique:
+            ratio = SequenceMatcher(None, headline, kept["headline"]).ratio()
+            if ratio >= 0.55:
+                is_dup = True
+                break
+        if is_dup:
+            continue
+        seen_urls.add(url)
+        unique.append(item)
+    return unique
+
+
 def scan_news(raw_news_data: str) -> dict:
     """GPT-4o-mini로 뉴스 데이터를 필터링하여 예측 가능한 이슈 30~40개를 엄선한다."""
     response = client.chat.completions.create(
@@ -55,6 +82,8 @@ def scan_news(raw_news_data: str) -> dict:
     )
 
     result = json.loads(response.choices[0].message.content)
+    if "scouted_list" in result:
+        result["scouted_list"] = _dedup(result["scouted_list"])
     return result
 
 
