@@ -17,14 +17,14 @@ SCORER_PROMPT = """[Role]
 너는 2040 한국 남성 투자자(디시, 펨코, 블라인드 유저)들의 도파민과 분노 버튼을 정확히 찾아내는 냉혹한 이슈 감별사다.
 
 [Task]
-제공된 뉴스/공시 리스트를 읽고, 각 이슈가 커뮤니티에서 피 터지는 논쟁(RED vs BLUE)을 일으킬 수 있는 '투기장 적합도'를 1~10점으로 평가하라. 평가가 끝난 후, 반드시 8점 이상(고관여 이슈)을 받은 기사들만 추려서 출력하라. 만약 8점 이상이 없다면 빈 배열([])을 출력하라.
+제공된 뉴스/공시 리스트를 읽고, **모든** 이슈에 대해 커뮤니티에서 피 터지는 논쟁(RED vs BLUE)을 일으킬 수 있는 '투기장 적합도'를 1~10점으로 평가하라. 반드시 입력된 모든 항목에 점수를 매겨서 출력하라. 하나도 빠뜨리지 마라.
 
-[Scoring Criteria (8점 이상을 받는 조건)]
+[Scoring Criteria]
 1. 명확한 적(Enemy)이 있는가? (개미 vs 기관, 시장 vs 규제, 경영권 분쟁 등)
 2. 돈(탐욕)이나 세금(분노)과 직결되는가? (금투세, 공매도, 상폐, 테마주 폭등 등)
-3. 뻔한 교과서적 이슈(단순 실적 발표, ESG 경영 등)는 제외.
+3. 뻔한 교과서적 이슈(단순 실적 발표, ESG 경영 등)는 낮은 점수.
 
-[Output Format: JSON Only]
+[Output Format: JSON Only — 반드시 모든 항목 포함]
 {
   "survivors": [
     {
@@ -39,7 +39,7 @@ SCORER_PROMPT_DOMESTIC = """[Role]
 너는 2040 한국 남성 투자자(디시, 펨코, 블라인드 유저)들의 도파민과 분노 버튼을 정확히 찾아내는 냉혹한 이슈 감별사다.
 
 [Task]
-제공된 뉴스/공시 리스트를 읽고, 각 이슈가 커뮤니티에서 피 터지는 논쟁(RED vs BLUE)을 일으킬 수 있는 '투기장 적합도'를 1~10점으로 평가하라. 평가가 끝난 후, 반드시 8점 이상(고관여 이슈)을 받은 기사들만 추려서 출력하라. 만약 8점 이상이 없다면 빈 배열([])을 출력하라.
+제공된 뉴스/공시 리스트를 읽고, **모든** 이슈에 대해 커뮤니티에서 피 터지는 논쟁(RED vs BLUE)을 일으킬 수 있는 '투기장 적합도'를 1~10점으로 평가하라. 반드시 입력된 모든 항목에 점수를 매겨서 출력하라. 하나도 빠뜨리지 마라.
 
 [CRITICAL: 국내 소스 필터]
 이것은 국내(domestic) 뉴스 분석이다. 반드시 한국과 직접적으로 관련된 이슈만 생존시켜라.
@@ -48,12 +48,12 @@ SCORER_PROMPT_DOMESTIC = """[Role]
   예: "TSMC 점유율 확대" → "삼성 파운드리 점유율 위기, TSMC에 밀려"
 - 한국과 무관한 순수 해외 이슈는 아무리 점수가 높아도 탈락시켜라.
 
-[Scoring Criteria (8점 이상을 받는 조건)]
+[Scoring Criteria]
 1. 명확한 적(Enemy)이 있는가? (개미 vs 기관, 시장 vs 규제, 경영권 분쟁 등)
 2. 돈(탐욕)이나 세금(분노)과 직결되는가? (금투세, 공매도, 상폐, 테마주 폭등 등)
-3. 뻔한 교과서적 이슈(단순 실적 발표, ESG 경영 등)는 제외.
+3. 뻔한 교과서적 이슈(단순 실적 발표, ESG 경영 등)는 낮은 점수.
 
-[Output Format: JSON Only]
+[Output Format: JSON Only — 반드시 모든 항목 포함]
 {
   "survivors": [
     {
@@ -67,8 +67,9 @@ SCORER_PROMPT_DOMESTIC = """[Role]
 
 
 def score_scouted(scouted_list: list[dict], domestic: bool = False) -> list[dict]:
-    """scouted_list 항목들의 투기장 적합도를 평가하고 8점 이상만 반환한다.
+    """scouted_list 항목들의 투기장 적합도를 평가하고 7점 이상만 반환한다.
 
+    최소 7개를 보장한다. 7점 이상이 7개 미만이면 점수 순으로 상위 7개를 반환.
     domestic=True이면 한국 관련 키워드 필터가 적용된 프롬프트를 사용한다.
     """
     if not scouted_list:
@@ -93,18 +94,24 @@ def score_scouted(scouted_list: list[dict], domestic: bool = False) -> list[dict
     result = json.loads(response.choices[0].message.content)
     survivors_raw = result.get("survivors", [])
 
-    # 원본 데이터와 merge + 안전장치
-    merged = []
+    # 원본 데이터와 merge
+    all_scored = []
     for s in survivors_raw:
         idx = s.get("id", -1)
         score = s.get("score", 0)
-        if 0 <= idx < len(scouted_list) and score >= 8:
+        if 0 <= idx < len(scouted_list) and score > 0:
             entry = {**scouted_list[idx], "score": score, "reason": s.get("reason", "")}
-            # domestic 모드: GPT가 재작성한 headline이 있으면 덮어쓰기
             if domestic and s.get("headline"):
                 entry["headline"] = s["headline"]
-            merged.append(entry)
+            all_scored.append(entry)
 
     # 점수 내림차순 정렬
-    merged.sort(key=lambda x: x["score"], reverse=True)
+    all_scored.sort(key=lambda x: x["score"], reverse=True)
+
+    # 7점 이상 필터, 최소 7개 보장
+    MIN_SURVIVORS = 7
+    merged = [x for x in all_scored if x["score"] >= 7]
+    if len(merged) < MIN_SURVIVORS:
+        merged = all_scored[:MIN_SURVIVORS]
+
     return merged

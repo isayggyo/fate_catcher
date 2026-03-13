@@ -21,6 +21,7 @@ from fetchers import (
 )
 from news_scanner import scan_news
 from scorer import score_scouted
+from question_maker import make_questions
 
 # ── 소스 그룹 정의 ──
 DOMESTIC_SOURCES = [
@@ -71,7 +72,7 @@ def _run_pipeline(combined: str, label: str, domestic: bool = False) -> dict:
     if scouted:
         print(f"[{label}] Stage 2 스코어링 중... ({len(scouted)}개 항목)")
         survivors = score_scouted(scouted, domestic=domestic)
-        print(f"         → {len(survivors)}개 생존 (8점 이상)")
+        print(f"         → {len(survivors)}개 생존 (7점 이상, 최소 7개)")
         result["survivors"] = survivors
     else:
         result["survivors"] = []
@@ -104,6 +105,20 @@ def run(source: str = "all") -> dict:
         global_result = _run_pipeline(global_text, "글로벌")
 
     # ── 결과 합산 ──
+    all_survivors = (
+        domestic_result.get("survivors", [])
+        + global_result.get("survivors", [])
+    )
+
+    # ── Stage 3: Yes/No 질문 변환 ──
+    questions = []
+    if all_survivors:
+        print("=" * 50)
+        print("🎯 [Stage 3] Yes/No 질문 변환 중...")
+        print("=" * 50)
+        questions = make_questions(all_survivors)
+        print(f"         → {len(questions)}개 질문 생성 완료")
+
     merged = {
         "domestic": domestic_result,
         "global": global_result,
@@ -111,10 +126,8 @@ def run(source: str = "all") -> dict:
             domestic_result.get("scouted_list", [])
             + global_result.get("scouted_list", [])
         ),
-        "survivors": (
-            domestic_result.get("survivors", [])
-            + global_result.get("survivors", [])
-        ),
+        "survivors": all_survivors,
+        "questions": questions,
     }
     return merged
 
@@ -137,9 +150,10 @@ if __name__ == "__main__":
 
     total_scouted = len(result["scouted_list"])
     survivors = result["survivors"]
+    questions = result.get("questions", [])
 
     print("\n" + "=" * 50)
-    print(f" {total_scouted}개 스캔 -> {len(survivors)}개 생존")
+    print(f" {total_scouted}개 스캔 → {len(survivors)}개 생존 → {len(questions)}개 질문")
     print("=" * 50)
 
     if survivors:
@@ -149,6 +163,18 @@ if __name__ == "__main__":
     else:
         print("  생존자 없음")
         print("=" * 50)
+
+    if questions:
+        print("\n" + "=" * 50)
+        print(" 🎲 내일의 베팅 질문")
+        print("=" * 50)
+        for i, q in enumerate(questions, 1):
+            print(f"\n  Q{i}. {q['question']}")
+            print(f"      🔴 {q['side_yes']}")
+            print(f"      🔵 {q['side_no']}")
+            print(f"      📏 판정: {q['resolution']}")
+            print(f"      ⏰ 마감: {q['deadline']}")
+        print("\n" + "=" * 50)
 
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
