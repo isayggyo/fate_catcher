@@ -1,4 +1,4 @@
-"""Fate Catcher 파이프라인: 뉴스 수집 → GPT 필터링 → 스코어링 → 결과 출력.
+"""Fate Catcher 파이프라인: 뉴스 수집 → GPT 필터링 → Gemini 스코어링+질문 → 결과 출력.
 
 사용법:
     python pipeline.py                    # 국내 + 글로벌 전체 실행
@@ -20,8 +20,7 @@ from fetchers import (
     fetch_alpha_vantage_news,
 )
 from news_scanner import scan_news
-from scorer import score_scouted
-from question_maker import make_questions
+from scorer import score_and_question
 
 # ── 소스 그룹 정의 ──
 DOMESTIC_SOURCES = [
@@ -60,22 +59,31 @@ def _collect(sources: list, group_label: str) -> str:
 
 
 def _run_pipeline(combined: str, label: str, domestic: bool = False) -> dict:
-    """수집된 텍스트에 GPT Stage 1 + Stage 2를 적용한다."""
+    """수집된 텍스트에 Stage 1(GPT) + Stage 2(Gemini 스코어링+질문)를 적용한다."""
     if not combined.strip():
         print(f"[{label}] 수집된 데이터가 없습니다. 스킵.")
-        return {"scouted_list": [], "survivors": []}
+        return {"scouted_list": [], "survivors": [], "questions": []}
 
     print(f"[{label}] GPT-4o-mini Stage 1 분석 중... (총 {len(combined)}자)")
     result = scan_news(combined)
 
     scouted = result.get("scouted_list", [])
     if scouted:
-        print(f"[{label}] Stage 2 스코어링 중... ({len(scouted)}개 항목)")
-        survivors = score_scouted(scouted, domestic=domestic)
-        print(f"         → {len(survivors)}개 생존 (7점 이상, 최소 7개)")
+        # 카테고리별 분포 출력
+        from collections import Counter
+        cats = Counter(item.get("category", "?") for item in scouted)
+        cat_str = " / ".join(f"{k}: {v}" for k, v in cats.most_common())
+        print(f"         → {len(scouted)}개 스카우트 [{cat_str}]")
+        print(f"[{label}] Gemini Stage 2 스코어링 + 질문 변환 중... ({len(scouted)}개 항목)")
+        stage2 = score_and_question(scouted, domestic=domestic)
+        survivors = stage2["survivors"]
+        questions = stage2["questions"]
+        print(f"         → {len(survivors)}개 생존, {len(questions)}개 질문 생성")
         result["survivors"] = survivors
+        result["questions"] = questions
     else:
         result["survivors"] = []
+        result["questions"] = []
 
     return result
 
@@ -85,13 +93,13 @@ def run(source: str = "all") -> dict:
 
     source: 'all' | 'domestic' | 'global'
     """
-    domestic_result = {"scouted_list": [], "survivors": []}
-    global_result = {"scouted_list": [], "survivors": []}
+    domestic_result = {"scouted_list": [], "survivors": [], "questions": []}
+    global_result = {"scouted_list": [], "survivors": [], "questions": []}
 
     # ── 국내 파이프라인 ──
     if source in ("all", "domestic"):
         print("=" * 50)
-        print("📌 [국내 파이프라인] 네이버 뉴스 + DART 공시")
+        print("[국내 파이프라인] 네이버 뉴스 + DART 공시")
         print("=" * 50)
         domestic_text = _collect(DOMESTIC_SOURCES, "국내")
         domestic_result = _run_pipeline(domestic_text, "국내", domestic=True)
@@ -99,26 +107,12 @@ def run(source: str = "all") -> dict:
     # ── 글로벌 파이프라인 ──
     if source in ("all", "global"):
         print("=" * 50)
-        print("🌐 [글로벌 파이프라인] Finnhub + FMP + Alpha Vantage")
+        print("[글로벌 파이프라인] Finnhub + FMP + Alpha Vantage")
         print("=" * 50)
         global_text = _collect(GLOBAL_SOURCES, "글로벌")
         global_result = _run_pipeline(global_text, "글로벌")
 
     # ── 결과 합산 ──
-    all_survivors = (
-        domestic_result.get("survivors", [])
-        + global_result.get("survivors", [])
-    )
-
-    # ── Stage 3: Yes/No 질문 변환 ──
-    questions = []
-    if all_survivors:
-        print("=" * 50)
-        print("🎯 [Stage 3] Yes/No 질문 변환 중...")
-        print("=" * 50)
-        questions = make_questions(all_survivors)
-        print(f"         → {len(questions)}개 질문 생성 완료")
-
     merged = {
         "domestic": domestic_result,
         "global": global_result,
@@ -126,8 +120,14 @@ def run(source: str = "all") -> dict:
             domestic_result.get("scouted_list", [])
             + global_result.get("scouted_list", [])
         ),
-        "survivors": all_survivors,
-        "questions": questions,
+        "survivors": (
+            domestic_result.get("survivors", [])
+            + global_result.get("survivors", [])
+        ),
+        "questions": (
+            domestic_result.get("questions", [])
+            + global_result.get("questions", [])
+        ),
     }
     return merged
 
@@ -153,12 +153,13 @@ if __name__ == "__main__":
     questions = result.get("questions", [])
 
     print("\n" + "=" * 50)
-    print(f" {total_scouted}개 스캔 → {len(survivors)}개 생존 → {len(questions)}개 질문")
+    print(f" {total_scouted}개 스캔 -> {len(survivors)}개 생존 -> {len(questions)}개 질문")
     print("=" * 50)
 
     if survivors:
         for i, s in enumerate(survivors, 1):
-            print(f"  [{s['score']}] {s['headline']}")
+            cat = s.get("category", "?")
+            print(f"  [{s['score']}] [{cat}] {s['headline']}")
         print("=" * 50)
     else:
         print("  생존자 없음")
@@ -166,18 +167,17 @@ if __name__ == "__main__":
 
     if questions:
         print("\n" + "=" * 50)
-        print(" 🎲 내일의 베팅 질문")
+        print(" 내일의 베팅 질문")
         print("=" * 50)
         for i, q in enumerate(questions, 1):
             print(f"\n  Q{i}. {q['question']}")
-            print(f"      🔴 {q['side_yes']}")
-            print(f"      🔵 {q['side_no']}")
-            print(f"      📏 판정: {q['resolution']}")
-            print(f"      ⏰ 마감: {q['deadline']}")
+            print(f"      {q['side_yes']}")
+            print(f"      {q['side_no']}")
+            print(f"      판정: {q['resolution']}")
+            print(f"      마감: {q['deadline']}")
         print("\n" + "=" * 50)
 
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
         print(f"결과 저장: {args.output}")
-

@@ -14,14 +14,24 @@ API_URL = "https://openapi.naver.com/v1/search/news.json"
 
 # Fate Catcher 핵심 키워드
 DEFAULT_QUERIES = [
+    # Governance
+    "경영권 분쟁",
+    "지분 전쟁",
+    "행동주의 펀드",
+    "M&A 인수합병",
+    "승계 경영",
+    # Policy
+    "금리 결정",
+    "정부 규제",
+    "국회 법안",
+    "금융당국",
+    "금투세",
+    # Capital & Theme
+    "유상증자",
+    "물적분할",
+    "CB 발행",
+    "테마주",
     "AI 반도체",
-    "금리 전망",
-    "비트코인",
-    "환율",
-    "부동산 정책",
-    "빅테크 규제",
-    "원자재 가격",
-    "공급망",
 ]
 
 
