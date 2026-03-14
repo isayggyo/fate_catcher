@@ -1,6 +1,6 @@
 """Stage 2: 스코어링 + Yes/No 질문 변환 (통합).
 
-Gemini 2.5 Pro를 사용하여 Stage 1 엄선 이슈를 한 번에:
+GPT-4o-mini를 사용하여 Stage 1 엄선 이슈를 한 번에:
   1) 투기장 적합도 스코어링 (1~10점)
   2) 7점 이상 생존자를 Yes/No 베팅 질문으로 변환
 """
@@ -8,13 +8,13 @@ Gemini 2.5 Pro를 사용하여 Stage 1 엄선 이슈를 한 번에:
 import json
 import os
 from datetime import datetime, timedelta
-from google import genai
+from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-MODEL = "gemini-2.5-pro"
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+MODEL = "gpt-4o-mini"
 
 
 def _build_prompt(domestic: bool = False) -> str:
@@ -106,18 +106,18 @@ def score_and_question(scouted_list: list[dict], domestic: bool = False) -> dict
     indexed = [{"id": i, **item} for i, item in enumerate(scouted_list)]
     user_content = json.dumps(indexed, ensure_ascii=False)
 
-    response = client.models.generate_content(
+    response = client.chat.completions.create(
         model=MODEL,
-        contents=[
-            {"role": "user", "parts": [{"text": f"{prompt}\n\n[INPUT]\n{user_content}"}]},
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": f"[INPUT]\n{user_content}"},
         ],
-        config={
-            "temperature": 0.3,
-            "response_mime_type": "application/json",
-        },
+        temperature=0.3,
+        max_tokens=8000,
+        response_format={"type": "json_object"},
     )
 
-    raw_text = response.text
+    raw_text = response.choices[0].message.content
     result = json.loads(raw_text)
 
     # ── 스코어링 결과 처리 ──

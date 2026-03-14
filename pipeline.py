@@ -25,7 +25,6 @@ from scorer import score_and_question
 # ── 소스 그룹 정의 ──
 DOMESTIC_SOURCES = [
     ("네이버 뉴스", fetch_naver_news),
-    ("DART 공시", fetch_dart_disclosures),
 ]
 
 GLOBAL_SOURCES = [
@@ -74,7 +73,7 @@ def _run_pipeline(combined: str, label: str, domestic: bool = False) -> dict:
         cats = Counter(item.get("category", "?") for item in scouted)
         cat_str = " / ".join(f"{k}: {v}" for k, v in cats.most_common())
         print(f"         → {len(scouted)}개 스카우트 [{cat_str}]")
-        print(f"[{label}] Gemini Stage 2 스코어링 + 질문 변환 중... ({len(scouted)}개 항목)")
+        print(f"[{label}] GPT-4o-mini Stage 2 스코어링 + 질문 변환 중... ({len(scouted)}개 항목)")
         stage2 = score_and_question(scouted, domestic=domestic)
         survivors = stage2["survivors"]
         questions = stage2["questions"]
