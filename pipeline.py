@@ -14,6 +14,7 @@ load_dotenv()
 
 from fetchers import (
     fetch_naver_news,
+    fetch_naver_news_full,
     fetch_dart_disclosures,
     fetch_finnhub_news,
     fetch_fmp_news,
@@ -21,6 +22,7 @@ from fetchers import (
 )
 from news_scanner import scan_news
 from scorer import score_and_question
+from stage_a import run_stage_a
 
 # ── 소스 그룹 정의 ──
 DOMESTIC_SOURCES = [
@@ -111,10 +113,31 @@ def run(source: str = "all") -> dict:
         global_text = _collect(GLOBAL_SOURCES, "글로벌")
         global_result = _run_pipeline(global_text, "글로벌")
 
+    # ── Stage A: 이벤트 드리븐 추출 (원본 뉴스 ~90개 투입) ──
+    stage_a_events = []
+    if source in ("all", "domestic"):
+        print("=" * 50)
+        print("[Stage A] 전체 뉴스 수집 → 이벤트 드리븐 추출")
+        print("=" * 50)
+        print("  [1/1] 네이버 뉴스 전체 수집 중 (제한 없음)...")
+        try:
+            full_news = fetch_naver_news_full()
+            if full_news.strip():
+                count = len(full_news.strip().split("\n"))
+                print(f"         → {count}건 수집 완료")
+                print(f"  [Stage A] GPT-4o-mini 이벤트 추출 중... ({len(full_news)}자)")
+                stage_a_events = run_stage_a(full_news)
+                print(f"         → {len(stage_a_events)}개 이벤트 추출 완료")
+            else:
+                print("         → 수집된 데이터 없음")
+        except Exception as e:
+            print(f"         → Stage A 실패: {e}")
+
     # ── 결과 합산 ──
     merged = {
         "domestic": domestic_result,
         "global": global_result,
+        "stage_a": stage_a_events,
         "scouted_list": (
             domestic_result.get("scouted_list", [])
             + global_result.get("scouted_list", [])
@@ -175,6 +198,21 @@ if __name__ == "__main__":
             print(f"      판정: {q['resolution']}")
             print(f"      마감: {q['deadline']}")
         print("\n" + "=" * 50)
+
+    # Stage A 이벤트 출력
+    stage_a = result.get("stage_a", [])
+    if stage_a:
+        print("\n" + "=" * 50)
+        print(f" Stage A: {len(stage_a)}개 이벤트 드리븐 이슈")
+        print("=" * 50)
+        for evt in stage_a:
+            print(f"  [{evt.get('id', '?')}] {evt.get('subject', '')}")
+            print(f"      대립: {evt.get('conflict', '')}")
+            print(f"      사건: {evt.get('trigger', '')}")
+            print(f"      기한: {evt.get('deadline', '')}")
+            print(f"      기준: {evt.get('pivot', '')}")
+            print()
+        print("=" * 50)
 
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:

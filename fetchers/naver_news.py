@@ -88,11 +88,11 @@ def _is_similar(title: str, seen_titles: list[str], threshold: float = 0.45) -> 
 MAX_PER_CATEGORY = 13
 
 
-def _collect_category(keywords: list[str], seen_links: set, seen_titles: list[str], cat: str = "") -> list[str]:
-    """카테고리 키워드 리스트로 기사를 수집한다 (URL + 제목 유사도 dedup, 최대 13개)."""
+def _collect_category(keywords: list[str], seen_links: set, seen_titles: list[str], cat: str = "", max_items: int = MAX_PER_CATEGORY) -> list[str]:
+    """카테고리 키워드 리스트로 기사를 수집한다 (URL + 제목 유사도 dedup)."""
     articles = []
     for kw in keywords:
-        if len(articles) >= MAX_PER_CATEGORY:
+        if len(articles) >= max_items:
             break
         try:
             items = _search(kw, display=50)
@@ -101,7 +101,7 @@ def _collect_category(keywords: list[str], seen_links: set, seen_titles: list[st
             continue
 
         for item in items:
-            if len(articles) >= MAX_PER_CATEGORY:
+            if len(articles) >= max_items:
                 break
             link = item.get("originallink") or item.get("link", "")
             if link in seen_links:
@@ -170,5 +170,27 @@ def fetch_naver_news(queries: list[str] | None = None, display: int = 50) -> str
             idx += 1
             all_lines.append(f"{idx}. [{cat}] {article}")
         print(f"         [{cat}] {len(cat_articles)}건")
+
+    return "\n".join(all_lines)
+
+
+def fetch_naver_news_full(display: int = 50) -> str:
+    """카테고리 제한 없이 전체 뉴스를 수집한다 (Stage A용, ~90개).
+
+    MAX_PER_CATEGORY 제한을 100으로 풀어 카테고리별 최대한 수집.
+    """
+    seen_links = set()
+    seen_titles: list[str] = []
+    all_lines = []
+    idx = 0
+
+    for cat, keywords in CATEGORY_QUERIES.items():
+        cat_articles = _collect_category(
+            keywords, seen_links, seen_titles, cat=cat, max_items=100
+        )
+        for article in cat_articles:
+            idx += 1
+            all_lines.append(f"{idx}. [{cat}] {article}")
+        print(f"         [{cat}] {len(cat_articles)}건 (full)")
 
     return "\n".join(all_lines)
