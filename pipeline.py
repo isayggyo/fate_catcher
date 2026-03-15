@@ -14,7 +14,6 @@ load_dotenv()
 
 from fetchers import (
     fetch_naver_news,
-    fetch_naver_news_full,
     fetch_dart_disclosures,
     fetch_finnhub_news,
     fetch_fmp_news,
@@ -22,6 +21,8 @@ from fetchers import (
 )
 from news_scanner import scan_news
 from scorer import score_and_question
+from early_bird import run_early_bird
+from stage_0 import fetch_stage0_news
 from stage_a import run_stage_a
 
 # ── 소스 그룹 정의 ──
@@ -113,25 +114,24 @@ def run(source: str = "all") -> dict:
         global_text = _collect(GLOBAL_SOURCES, "글로벌")
         global_result = _run_pipeline(global_text, "글로벌")
 
-    # ── Stage A: 이벤트 드리븐 추출 (원본 뉴스 ~90개 투입) ──
+    # ── Stage 0 → Stage A: 독립 쿼리로 뉴스 수집 → 이벤트 드리븐 추출 ──
     stage_a_events = []
     if source in ("all", "domestic"):
         print("=" * 50)
-        print("[Stage A] 전체 뉴스 수집 → 이벤트 드리븐 추출")
+        print("[Stage 0 → A] 독립 키워드 수집 → 이벤트 드리븐 추출")
         print("=" * 50)
-        print("  [1/1] 네이버 뉴스 전체 수집 중 (제한 없음)...")
         try:
-            full_news = fetch_naver_news_full()
-            if full_news.strip():
-                count = len(full_news.strip().split("\n"))
-                print(f"         → {count}건 수집 완료")
-                print(f"  [Stage A] GPT-4o-mini 이벤트 추출 중... ({len(full_news)}자)")
-                stage_a_events = run_stage_a(full_news)
+            # Early Bird → 트렌드 키워드 추출
+            trend_keywords = run_early_bird()
+            stage0_news = fetch_stage0_news(extra_keywords=trend_keywords)
+            if stage0_news.strip():
+                print(f"  [Stage A] GPT-4o-mini 이벤트 추출 중... ({len(stage0_news)}자)")
+                stage_a_events = run_stage_a(stage0_news)
                 print(f"         → {len(stage_a_events)}개 이벤트 추출 완료")
             else:
-                print("         → 수집된 데이터 없음")
+                print("         → Stage 0 수집 데이터 없음")
         except Exception as e:
-            print(f"         → Stage A 실패: {e}")
+            print(f"         → Stage 0→A 실패: {e}")
 
     # ── 결과 합산 ──
     merged = {
