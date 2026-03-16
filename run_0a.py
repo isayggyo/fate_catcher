@@ -22,10 +22,19 @@ raw = fetch_stage0_news(extra_keywords=keywords)
 print(f"Stage 0 수집: {len(raw.splitlines())}건\n")
 
 events = run_stage_a(raw)
-print(json.dumps(events, ensure_ascii=False, indent=2))
-print(f"\n총 {len(events)}개 이벤트")
 
 # 결과 저장
 with open("stage0a_result.json", "w", encoding="utf-8") as f:
     json.dump(events, f, ensure_ascii=False, indent=2)
-print("결과 저장: stage0a_result.json")
+
+# 테이블 출력
+header = f"{'ID':<14} {'subject':<16} {'conflict':<28} {'trigger':<20} {'deadline':<12} {'pivot'}"
+sep = "-" * len(header)
+print(f"\n{sep}")
+print(header)
+print(sep)
+for e in events:
+    dl = e.get("deadline", "")[:10]
+    print(f"{e['id']:<14} {e['subject']:<16} {e['conflict']:<28} {e['trigger']:<20} {dl:<12} {e['pivot']}")
+print(sep)
+print(f"총 {len(events)}개 이벤트 | 결과 저장: stage0a_result.json")
