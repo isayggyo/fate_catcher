@@ -19,6 +19,9 @@ tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 MODEL = "gpt-4o-mini"
 
 TODAY = datetime.now().strftime("%Y-%m-%d")
+TODAY_WEEKDAY = ["월요일","화요일","수요일","목요일","금요일","토요일","일요일"][datetime.now().weekday()]
+TODAY_US = (datetime.now() - timedelta(hours=14)).strftime("%Y-%m-%d")  # 한국 대비 약 -14h
+TODAY_US_WEEKDAY = ["월요일","화요일","수요일","목요일","금요일","토요일","일요일"][(datetime.now() - timedelta(hours=14)).weekday()]
 DEADLINE_END = (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d")
 
 TARGET_ISSUES = [
@@ -68,7 +71,8 @@ def _fetch_global_news() -> dict[str, str]:
 
 def _build_prompt() -> str:
     return f"""당신은 'Fate Catcher'의 글로벌 매크로 전략가입니다.
-오늘은 {TODAY}입니다. 유효 기한: {TODAY} ~ {DEADLINE_END}.
+오늘은 {TODAY} ({TODAY_WEEKDAY})입니다. 미국 현재 날짜: {TODAY_US} ({TODAY_US_WEEKDAY}).
+유효 기한: {TODAY} ~ {DEADLINE_END}.
 
 제공된 실시간 금융 데이터를 분석하여, 향후 72시간 내에 가격 변동성이나 정책적 결론이 극대화될 '5대 핵심 트리거'를 추출하십시오.
 
@@ -150,7 +154,7 @@ def run_stage_alpha() -> list[str]:
 # ── Stage Alpha-2: 트리거 → 퀘스트 JSON 변환 ─────────────────
 
 QUEST_PROMPT = f"""당신은 글로벌/국내 거시경제와 기업 실적을 분석하여, 투자자들의 치열한 논쟁을 유발하는 72시간 단기 예측 퀘스트(Quest)를 설계하는 수석 퀀트 애널리스트입니다.
-오늘은 {{TODAY}}입니다.
+오늘은 {{TODAY}} ({{TODAY_WEEKDAY}})입니다. 미국 현재 날짜: {{TODAY_US}} ({{TODAY_US_WEEKDAY}}).
 
 [목표]
 제공된 최신 뉴스 요약본(팩트)을 바탕으로, 유저들이 베팅하고 분석 논리를 작성할 수 있는 완벽한 퀘스트 JSON을 생성하세요.
@@ -240,7 +244,7 @@ def run_stage_alpha_quests(selected_indices: list[int] | None = None,
 
     print(f"\n  [Stage Alpha-2] 선택: {selected}")
 
-    prompt = QUEST_PROMPT.replace("{TODAY}", TODAY)
+    prompt = QUEST_PROMPT.replace("{TODAY}", TODAY).replace("{TODAY_WEEKDAY}", TODAY_WEEKDAY).replace("{TODAY_US}", TODAY_US).replace("{TODAY_US_WEEKDAY}", TODAY_US_WEEKDAY)
 
     # 트리거별 개별 API 호출 (gpt-4.1이 한 번에 여러 퀘스트 생성 불가 문제 해결)
     quests = []
