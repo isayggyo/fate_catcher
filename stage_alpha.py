@@ -99,7 +99,10 @@ def run_stage_alpha() -> list[str]:
         print(f"  [{key}]")
         if val.strip():
             for line in val.strip().split("\n"):
-                print(f"    {line}")
+                try:
+                    print(f"    {line}")
+                except UnicodeEncodeError:
+                    print(f"    {line.encode('ascii', 'ignore').decode()}")
         else:
             print("    (결과 없음)")
         print("  " + "-" * 50)
