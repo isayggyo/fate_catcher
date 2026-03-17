@@ -1,0 +1,50 @@
+[
+  {
+    "id": "EVT_001",
+    "subject": "하남시",
+    "conflict": "호텔 건립과 공공이익",
+    "trigger": "사전협상 개시",
+    "deadline": "2026-04-15 23:59",
+    "pivot": "호텔 건립 승인 여부"
+  },
+  {
+    "id": "EVT_T2_001",
+    "subject": "카카오페이",
+    "conflict": "주주총회와 신규 사업",
+    "trigger": "주주총회 개최",
+    "deadline": "2026-03-23 23:59",
+    "pivot": "신규 사업 승인 여부"
+  },
+  {
+    "id": "EVT_T2_002",
+    "subject": "NH투자증권",
+    "conflict": "정례회의와 IMA 승인",
+    "trigger": "정례회의 개최",
+    "deadline": "2026-03-18 23:59",
+    "pivot": "IMA 승인 여부"
+  },
+  {
+    "id": "EVT_T2_003",
+    "subject": "우리은행",
+    "conflict": "기업승계지원센터와 지원",
+    "trigger": "지원 방안 발표",
+    "deadline": "2026-04-15 23:59",
+    "pivot": "지원 방안 실행 여부"
+  },
+  {
+    "id": "EVT_T2_004",
+    "subject": "정청래",
+    "conflict": "추경안 심사와 민생",
+    "trigger": "추경안 제출",
+    "deadline": "2026-03-23 23:59",
+    "pivot": "추경안 심사 완료 여부"
+  },
+  {
+    "id": "EVT_T2_005",
+    "subject": "정부",
+    "conflict": "국고채 바이백과 시장 안정",
+    "trigger": "국고채 바이백 준비",
+    "deadline": "2026-04-15 23:59",
+    "pivot": "바이백 실행 여부"
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "EVT_003",
+    "subject": "고려아연 (최윤범 vs 영풍·MBK)",
+    "conflict": "경영권 방어 vs 적대적 M&A",
+    "trigger": "주주총회 위임장 의혹",
+    "deadline": "2026-03-15 00:00",
+    "pivot": "위임장 수집 의혹 진위 여부"
+  },
+  {
+    "id": "EVT_004",
+    "subject": "쉰들러 (정부 vs 쉰들러)",
+    "conflict": "국가 책임 vs 투자자 손해",
+    "trigger": "ISDS 판결",
+    "deadline": "2026-03-15 00:00",
+    "pivot": "ISDS 판결 결과"
+  }
+]
