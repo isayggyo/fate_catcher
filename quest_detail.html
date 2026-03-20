@@ -52,24 +52,34 @@ body::before{
   max-width:960px;margin:0 auto;padding:0 32px;
 }
 
-/* ── SIDE BADGE ── */
-.side-badge{
-  text-align:center;margin-bottom:24px;
+/* ── SIDE TOGGLE ── */
+.side-toggle{
+  display:flex;justify-content:center;gap:16px;margin-bottom:24px;
 }
-.side-badge .badge{
-  font-family:'Bebas Neue',sans-serif;font-size:48px;
+.side-toggle .side-btn{
+  padding:14px 40px;border:1px solid #E8E4E0;background:#FAF8F6;
+  cursor:pointer;text-align:center;transition:all 0.25s ease;min-width:200px;
+}
+.side-toggle .side-btn .side-label{
+  font-family:'Bebas Neue',sans-serif;font-size:36px;
   letter-spacing:4px;line-height:1;
 }
-.side-badge .badge.red{color:#D03838;}
-.side-badge .badge.blue{color:#4888BF;}
-.side-badge .side-desc{
-  font-weight:300;font-size:14px;color:#5A5650;margin-top:6px;
+.side-toggle .side-btn .side-desc{
+  font-weight:300;font-size:12px;color:#5A5650;margin-top:4px;
   letter-spacing:1px;
 }
-.side-badge .quest-title{
-  font-family:'Playfair Display',serif;
-  font-size:18px;color:#5A5650;margin-top:8px;
+.side-toggle .side-btn.red .side-label{color:#D03838;}
+.side-toggle .side-btn.blue .side-label{color:#4888BF;}
+.side-toggle .side-btn.red.active{
+  background:#D03838;border-color:#D03838;
 }
+.side-toggle .side-btn.red.active .side-label{color:#F5F2EE;}
+.side-toggle .side-btn.red.active .side-desc{color:#F5F2EE;opacity:0.8;}
+.side-toggle .side-btn.blue.active{
+  background:#4888BF;border-color:#4888BF;
+}
+.side-toggle .side-btn.blue.active .side-label{color:#F5F2EE;}
+.side-toggle .side-btn.blue.active .side-desc{color:#F5F2EE;opacity:0.8;}
 
 /* ── CONFIDENCE ── */
 .confidence-section{
@@ -213,9 +223,15 @@ body::before{
 
 <div class="content" id="content">
 
-  <div class="side-badge">
-    <div class="badge" id="side-label"></div>
-    <div class="side-desc" id="side-desc"></div>
+  <div class="side-toggle" id="side-toggle">
+    <div class="side-btn red" data-side="RED">
+      <div class="side-label">RED</div>
+      <div class="side-desc" id="red-desc"></div>
+    </div>
+    <div class="side-btn blue" data-side="BLUE">
+      <div class="side-label">BLUE</div>
+      <div class="side-desc" id="blue-desc"></div>
+    </div>
   </div>
 
   <div class="confidence-section">
@@ -269,27 +285,31 @@ body::before{
 <script>
 const params = new URLSearchParams(window.location.search);
 const questId = params.get('id');
-const side = params.get('side');
+let currentSide = params.get('side') || 'RED';
+
+/* ── descs ── */
+const redDesc = params.get('redDesc') || params.get('desc') || '';
+const blueDesc = params.get('blueDesc') || '';
+document.getElementById('red-desc').textContent = redDesc;
+document.getElementById('blue-desc').textContent = blueDesc;
 
 /* ── init ── */
-const sideLabel = document.getElementById('side-label');
-const sideDesc = document.getElementById('side-desc');
 const submitBtn = document.getElementById('submit-btn');
 let selectedConf = null;
 
-if (side === 'RED') {
-  sideLabel.textContent = 'RED';
-  sideLabel.classList.add('red');
-  submitBtn.classList.add('red-bg');
-} else {
-  sideLabel.textContent = 'BLUE';
-  sideLabel.classList.add('blue');
-  submitBtn.classList.add('blue-bg');
+function setSide(s) {
+  currentSide = s;
+  document.querySelectorAll('.side-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.side-btn[data-side="${s}"]`).classList.add('active');
+  submitBtn.classList.remove('red-bg', 'blue-bg');
+  submitBtn.classList.add(s === 'RED' ? 'red-bg' : 'blue-bg');
 }
 
-/* desc from query params */
-const desc = params.get('desc');
-if (desc) sideDesc.textContent = desc;
+document.querySelectorAll('.side-btn').forEach(btn => {
+  btn.addEventListener('click', () => setSide(btn.dataset.side));
+});
+
+setSide(currentSide);
 
 /* ── confidence buttons + slider ── */
 const confSlider = document.getElementById('conf-slider');
@@ -338,7 +358,7 @@ submitBtn.addEventListener('click', function() {
   }
   const payload = {
     questId: questId,
-    side: side,
+    side: currentSide,
     confidence: selectedConf,
     logic: logicText.value.trim()
   };
@@ -353,7 +373,7 @@ submitBtn.addEventListener('click', function() {
   .then(({ok, data}) => {
     if (ok) {
       submitBtn.textContent = 'Submitted';
-      setTimeout(() => { window.location.href = 'quests.html'; }, 1200);
+      setTimeout(() => { window.location.href = `quest_result.html?id=${encodeURIComponent(questId)}&side=${currentSide}&confidence=${selectedConf}`; }, 1200);
     } else {
       alert(data.error || 'Submit failed');
       submitBtn.disabled = false;

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Fate Catcher — Result</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;1,400&family=Raleway:wght@100;200;300;400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:#F5F2EE;font-family:'Raleway',sans-serif;
+  color:#2D2926;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:200;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  mix-blend-mode:multiply;
+}
+
+.back-link{
+  position:fixed;top:28px;left:28px;z-index:100;
+  display:flex;align-items:center;gap:8px;
+  text-decoration:none;color:#B0ACA6;
+  font-size:10px;letter-spacing:3px;font-weight:200;
+  text-transform:uppercase;transition:color 0.2s;
+}
+.back-link:hover{color:#2D2926;}
+.back-arrow{
+  width:24px;height:24px;border:1px solid #C8C4BE;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;transition:all 0.3s;
+}
+.back-link:hover .back-arrow{
+  background:#2D2926;color:#F5F2EE;border-color:#2D2926;
+}
+
+.header{
+  text-align:center;padding:24px 20px 12px;
+}
+.brand-name{
+  font-family:'Bebas Neue',sans-serif;font-size:14px;
+  letter-spacing:7px;color:#A8A4A0;
+}
+.brand-rule{
+  width:40px;height:1px;background:#C8C4BE;margin:6px auto;
+}
+
+.content{
+  max-width:960px;margin:0 auto;padding:60px 32px;
+  text-align:center;
+}
+
+.your-pick{
+  margin-bottom:48px;
+}
+.pick-label{
+  font-weight:200;font-size:10px;letter-spacing:4px;
+  text-transform:uppercase;color:#9A9590;margin-bottom:16px;
+}
+.pick-side{
+  font-family:'Bebas Neue',sans-serif;font-size:72px;
+  letter-spacing:6px;line-height:1;
+}
+.pick-side.red{color:#D03838;}
+.pick-side.blue{color:#4888BF;}
+
+.pick-confidence{
+  margin-top:20px;
+}
+.conf-number{
+  font-family:'Bebas Neue',sans-serif;font-size:56px;
+  line-height:1;color:#2D2926;
+}
+.conf-unit{
+  font-family:'Bebas Neue',sans-serif;font-size:22px;
+  color:#9A9590;vertical-align:super;
+}
+.conf-label{
+  font-weight:200;font-size:10px;letter-spacing:3px;
+  text-transform:uppercase;color:#9A9590;margin-top:4px;
+}
+
+.divider{
+  width:40px;height:1px;background:#C8C4BE;margin:40px auto;
+}
+
+/* ── THERMOMETER ── */
+.thermo-section{
+  margin-top:48px;
+}
+.thermo-label{
+  font-weight:200;font-size:10px;letter-spacing:4px;
+  text-transform:uppercase;color:#9A9590;margin-bottom:20px;
+}
+.thermo-stats{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  margin-bottom:12px;
+}
+.thermo-side{
+  text-align:center;min-width:100px;
+}
+.thermo-side .side-name{
+  font-family:'Bebas Neue',sans-serif;font-size:20px;
+  letter-spacing:3px;
+}
+.thermo-side .side-name.red{color:#D03838;}
+.thermo-side .side-name.blue{color:#4888BF;}
+.thermo-side .side-count{
+  font-family:'Bebas Neue',sans-serif;font-size:36px;
+  line-height:1;color:#2D2926;
+}
+.thermo-side .side-avg{
+  font-weight:200;font-size:10px;letter-spacing:1px;color:#9A9590;
+  margin-top:2px;
+}
+.thermo-bar-wrap{
+  flex:1;margin:0 24px;
+}
+.thermo-bar{
+  width:100%;height:32px;
+  background:#E8E4E0;
+  display:flex;overflow:hidden;
+}
+.thermo-fill-red{
+  height:100%;background:#D03838;
+  transition:width 0.8s ease;
+}
+.thermo-fill-blue{
+  height:100%;background:#4888BF;
+  transition:width 0.8s ease;
+}
+.thermo-pct{
+  display:flex;justify-content:space-between;
+  margin-top:6px;
+}
+.thermo-pct span{
+  font-family:'Bebas Neue',sans-serif;font-size:16px;
+  letter-spacing:1px;
+}
+.thermo-pct .pct-red{color:#D03838;}
+.thermo-pct .pct-blue{color:#4888BF;}
+
+.thermo-total{
+  margin-top:12px;
+  font-weight:200;font-size:10px;letter-spacing:3px;
+  text-transform:uppercase;color:#B0ACA6;
+}
+
+/* ── AI PREDICTION ── */
+.ai-section{
+  margin-top:48px;
+}
+.ai-label{
+  font-weight:200;font-size:10px;letter-spacing:4px;
+  text-transform:uppercase;color:#9A9590;margin-bottom:20px;
+}
+.ai-boxes{
+  display:flex;gap:16px;
+}
+.ai-box{
+  flex:1;background:#fff;border:1px solid #E8E4E0;
+  padding:32px 24px;min-height:160px;
+}
+.ai-box .box-side{
+  font-family:'Bebas Neue',sans-serif;font-size:24px;
+  letter-spacing:3px;margin-bottom:12px;
+}
+.ai-box .box-side.red{color:#D03838;}
+.ai-box .box-side.blue{color:#4888BF;}
+.ai-box .box-content{
+  font-weight:300;font-size:13px;line-height:1.7;color:#5A5650;
+}
+
+/* ── COMMUNITY BOARD ── */
+.board-section{
+  margin-top:48px;
+}
+.board-label{
+  font-weight:200;font-size:10px;letter-spacing:4px;
+  text-transform:uppercase;color:#9A9590;margin-bottom:20px;
+}
+.board-columns{
+  display:flex;justify-content:space-between;text-align:left;
+}
+.board-col{
+  width:40%;
+}
+.board-col-header{
+  font-family:'Bebas Neue',sans-serif;font-size:20px;
+  letter-spacing:3px;margin-bottom:12px;
+}
+.board-col-header.red{color:#D03838;}
+.board-col-header.blue{color:#4888BF;}
+.board-card{
+  background:#fff;border:1px solid #E8E4E0;
+  padding:16px 20px;margin-bottom:8px;
+}
+.board-card .card-logic{
+  font-weight:300;font-size:13px;line-height:1.6;color:#2D2926;
+}
+.board-card .card-meta{
+  margin-top:8px;font-weight:200;font-size:10px;
+  letter-spacing:1px;color:#B0ACA6;
+}
+.board-empty{
+  font-weight:200;font-size:12px;color:#C8C4BE;
+  letter-spacing:1px;padding:20px 0;
+}
+
+.page-sub{
+  font-weight:200;font-size:13px;letter-spacing:2px;color:#9A9590;
+  margin-top:48px;
+}
+
+.footer{
+  text-align:center;padding:12px;
+  font-weight:200;font-size:9px;letter-spacing:3px;color:#B0ACA6;
+  text-transform:uppercase;
+}
+</style>
+</head>
+<body>
+
+<a class="back-link" href="quests.html">
+  <span class="back-arrow">&larr;</span>
+  Quests
+</a>
+
+<div class="header">
+  <div class="brand-name">Fate Catcher</div>
+  <div class="brand-rule"></div>
+</div>
+
+<div class="content">
+  <div class="your-pick">
+    <div class="pick-label">Your Pick</div>
+    <div class="pick-side" id="pick-side"></div>
+    <div class="pick-confidence">
+      <span class="conf-number" id="conf-number"></span><span class="conf-unit">%</span>
+      <div class="conf-label">Confidence</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="thermo-section" id="thermo-section" style="display:none;">
+    <div class="thermo-label">Community Predictions</div>
+    <div class="thermo-stats">
+      <div class="thermo-side">
+        <div class="side-name red">RED</div>
+        <div class="side-count" id="red-count">0</div>
+        <div class="side-avg">avg <span id="red-avg">0</span>%</div>
+      </div>
+      <div class="thermo-bar-wrap">
+        <div class="thermo-bar">
+          <div class="thermo-fill-red" id="fill-red" style="width:50%;"></div>
+          <div class="thermo-fill-blue" id="fill-blue" style="width:50%;"></div>
+        </div>
+        <div class="thermo-pct">
+          <span class="pct-red" id="pct-red">50%</span>
+          <span class="pct-blue" id="pct-blue">50%</span>
+        </div>
+      </div>
+      <div class="thermo-side">
+        <div class="side-name blue">BLUE</div>
+        <div class="side-count" id="blue-count">0</div>
+        <div class="side-avg">avg <span id="blue-avg">0</span>%</div>
+      </div>
+    </div>
+    <div class="thermo-total"><span id="total-count">0</span> total predictions</div>
+  </div>
+
+  <div class="ai-section">
+    <div class="ai-label">AI Prediction</div>
+    <div class="ai-boxes">
+      <div class="ai-box">
+        <div class="box-side red">RED</div>
+        <div class="box-content" id="ai-red"></div>
+      </div>
+      <div class="ai-box">
+        <div class="box-side blue">BLUE</div>
+        <div class="box-content" id="ai-blue"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="board-section" id="board-section" style="display:none;">
+    <div class="board-label">Community Board</div>
+    <div class="board-columns">
+      <div class="board-col">
+        <div class="board-col-header red">RED</div>
+        <div id="board-red"><div class="board-empty">No entries yet</div></div>
+      </div>
+      <div class="board-col">
+        <div class="board-col-header blue">BLUE</div>
+        <div id="board-blue"><div class="board-empty">No entries yet</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Fate Catcher &mdash; The future belongs to those who see it first</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const questId = params.get('id');
+const side = params.get('side') || 'RED';
+const confidence = params.get('confidence') || '75';
+
+const sideEl = document.getElementById('pick-side');
+sideEl.textContent = side;
+sideEl.classList.add(side.toLowerCase());
+document.getElementById('conf-number').textContent = confidence;
+
+/* ── fetch stats ── */
+if (questId) {
+  fetch(`/api/stats/${encodeURIComponent(questId)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.total === 0) return;
+      document.getElementById('thermo-section').style.display = '';
+
+      const rc = data.red.count;
+      const bc = data.blue.count;
+      const total = data.total;
+      const redPct = Math.round((rc / total) * 100);
+      const bluePct = 100 - redPct;
+
+      document.getElementById('red-count').textContent = rc;
+      document.getElementById('blue-count').textContent = bc;
+      document.getElementById('red-avg').textContent = data.red.avg_conf;
+      document.getElementById('blue-avg').textContent = data.blue.avg_conf;
+      document.getElementById('total-count').textContent = total;
+
+      document.getElementById('fill-red').style.width = redPct + '%';
+      document.getElementById('fill-blue').style.width = bluePct + '%';
+      document.getElementById('pct-red').textContent = redPct + '%';
+      document.getElementById('pct-blue').textContent = bluePct + '%';
+    });
+
+  fetch(`/api/board/${encodeURIComponent(questId)}`)
+    .then(r => r.json())
+    .then(data => {
+      const entries = data.entries || [];
+      if (entries.length === 0) return;
+      document.getElementById('board-section').style.display = '';
+
+      const redEntries = entries.filter(e => e.side === 'RED');
+      const blueEntries = entries.filter(e => e.side === 'BLUE');
+
+      function renderCards(list) {
+        if (list.length === 0) return '<div class="board-empty">No entries yet</div>';
+        return list.map(e => `
+          <div class="board-card">
+            <div class="card-logic">${e.logic.replace(/</g,'&lt;')}</div>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('board-red').innerHTML = renderCards(redEntries);
+      document.getElementById('board-blue').innerHTML = renderCards(blueEntries);
+    });
+}
+</script>
+</body>
+</html>

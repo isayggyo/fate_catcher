@@ -1,23 +1,15 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-import json, os, datetime
+from dotenv import load_dotenv
+from supabase import create_client
+import os, datetime
+
+load_dotenv()
 
 app = Flask(__name__, static_folder=".", static_url_path="")
 CORS(app)
 
-SUBMISSIONS_FILE = os.path.join(os.path.dirname(__file__), "submissions.json")
-
-
-def _load_submissions():
-    if os.path.exists(SUBMISSIONS_FILE):
-        with open(SUBMISSIONS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
-
-
-def _save_submissions(data):
-    with open(SUBMISSIONS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+supabase = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_KEY"])
 
 
 @app.route("/api/submit", methods=["POST"])
@@ -36,19 +28,34 @@ def submit():
     if len(logic.strip()) < 30:
         return jsonify({"error": "logic must be at least 30 characters"}), 400
 
-    entry = {
-        "questId": quest_id,
+    row = {
+        "quest_id": quest_id,
         "side": side,
         "confidence": int(confidence),
         "logic": logic.strip(),
-        "submittedAt": datetime.datetime.utcnow().isoformat() + "Z",
     }
 
-    subs = _load_submissions()
-    subs.append(entry)
-    _save_submissions(subs)
+    result = supabase.table("submissions").insert(row).execute()
 
-    return jsonify({"ok": True, "entry": entry}), 201
+    return jsonify({"ok": True, "entry": result.data[0]}), 201
+
+
+@app.route("/api/stats/<quest_id>")
+def stats(quest_id):
+    rows = supabase.table("submissions").select("side,confidence").eq("quest_id", quest_id).execute().data
+    red = [r["confidence"] for r in rows if r["side"] == "RED"]
+    blue = [r["confidence"] for r in rows if r["side"] == "BLUE"]
+    return jsonify({
+        "total": len(rows),
+        "red": {"count": len(red), "avg_conf": round(sum(red) / len(red), 1) if red else 0},
+        "blue": {"count": len(blue), "avg_conf": round(sum(blue) / len(blue), 1) if blue else 0},
+    })
+
+
+@app.route("/api/board/<quest_id>")
+def board(quest_id):
+    rows = supabase.table("submissions").select("side,confidence,logic,submitted_at").eq("quest_id", quest_id).order("submitted_at", desc=True).execute().data
+    return jsonify({"entries": rows})
 
 
 @app.route("/")

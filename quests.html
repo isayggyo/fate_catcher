@@ -313,8 +313,9 @@ if (QUESTS.length === 0) {
       const side = this.dataset.side;
       const q = QUESTS[idx];
       if (q) {
-        const desc = q.options?.[side] || '';
-        window.location.href = `quest_detail.html?id=${encodeURIComponent(q.questId)}&side=${side}&title=${encodeURIComponent(q.title)}&desc=${encodeURIComponent(desc)}`;
+        const redDesc = q.options?.RED || '';
+        const blueDesc = q.options?.BLUE || '';
+        window.location.href = `quest_detail.html?id=${encodeURIComponent(q.questId)}&side=${side}&title=${encodeURIComponent(q.title)}&redDesc=${encodeURIComponent(redDesc)}&blueDesc=${encodeURIComponent(blueDesc)}`;
       }
     });
   });
