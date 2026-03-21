@@ -289,7 +289,7 @@
 
 </div>
 
-<a href="quests.html" id="enter-btn" style="
+<a href="login.html" id="enter-btn" style="
   position:fixed;bottom:40px;right:40px;z-index:999;
   display:inline-flex;align-items:center;gap:10px;
   padding:14px 28px;
@@ -301,5 +301,11 @@
   opacity:0;animation:fadeIn 0.6s ease 2s forwards;
 ">Enter Quests <span style="font-size:16px;">→</span></a>
 
+<script>
+if (localStorage.getItem('fc_token')) {
+  document.getElementById('enter-btn').href = 'quests.html';
+  document.getElementById('enter-btn').textContent = 'Enter Quests →';
+}
+</script>
 </body>
 </html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Fate Catcher — Community Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;1,400&family=Raleway:wght@100;200;300;400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:#F5F2EE;font-family:'Raleway',sans-serif;
+  color:#2D2926;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:200;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  mix-blend-mode:multiply;
+}
+
+/* ── SIDEBAR ── */
+.menu-btn{
+  position:fixed;top:28px;left:28px;z-index:400;
+  width:32px;height:32px;border:1px solid #C8C4BE;
+  background:#FAF8F6;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  transition:all 0.3s;
+}
+.menu-btn:hover{background:#2D2926;border-color:#2D2926;}
+.menu-btn span{
+  display:block;width:14px;height:1px;background:#2D2926;
+  transition:all 0.3s;
+}
+.menu-btn:hover span{background:#F5F2EE;}
+.sidebar-overlay{
+  position:fixed;inset:0;z-index:450;
+  background:rgba(45,41,38,0.4);
+  opacity:0;pointer-events:none;
+  transition:opacity 0.3s;
+}
+.sidebar-overlay.open{opacity:1;pointer-events:auto;}
+.sidebar{
+  position:fixed;top:0;left:-280px;z-index:500;
+  width:280px;height:100%;
+  background:#F5F2EE;border-right:1px solid #E8E4E0;
+  transition:left 0.3s ease;
+  padding:60px 32px 32px;
+}
+.sidebar.open{left:0;}
+.sidebar-close{
+  position:absolute;top:20px;right:20px;
+  width:28px;height:28px;border:1px solid #C8C4BE;
+  background:transparent;cursor:pointer;
+  font-size:14px;color:#9A9590;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.3s;
+}
+.sidebar-close:hover{background:#2D2926;color:#F5F2EE;border-color:#2D2926;}
+.sidebar-brand{
+  font-family:'Bebas Neue',sans-serif;font-size:16px;
+  letter-spacing:5px;color:#A8A4A0;margin-bottom:32px;
+}
+.sidebar-nav{list-style:none;}
+.sidebar-nav li{margin-bottom:0;}
+.sidebar-nav a{
+  display:block;padding:14px 0;
+  text-decoration:none;
+  font-weight:300;font-size:13px;letter-spacing:2px;
+  color:#5A5650;border-bottom:1px solid #E8E4E0;
+  transition:color 0.2s;
+}
+.sidebar-nav a:hover{color:#2D2926;}
+
+/* ── HEADER ── */
+.header{
+  text-align:center;padding:24px 20px 12px;
+}
+.brand-name{
+  font-family:'Bebas Neue',sans-serif;font-size:14px;
+  letter-spacing:7px;color:#A8A4A0;
+}
+.brand-rule{
+  width:40px;height:1px;background:#C8C4BE;margin:6px auto;
+}
+.header .title{
+  font-family:'Bebas Neue',sans-serif;font-size:48px;
+  letter-spacing:3px;color:#2D2926;line-height:1;margin-top:8px;
+}
+.header .subtitle{
+  font-family:'Playfair Display',serif;font-style:italic;
+  font-size:13px;color:#6A6560;margin-top:2px;
+}
+
+/* ── CONTENT ── */
+.content{
+  max-width:960px;margin:0 auto;padding:40px 32px 60px;
+}
+
+/* ── COMMUNITY BOARD ── */
+.board-section{
+  margin-top:20px;
+}
+.board-label{
+  font-weight:200;font-size:10px;letter-spacing:4px;
+  text-transform:uppercase;color:#9A9590;margin-bottom:20px;
+  text-align:center;
+}
+.board-columns{
+  display:flex;justify-content:space-between;text-align:left;
+}
+.board-col{
+  width:48%;
+}
+.board-col-header{
+  font-family:'Bebas Neue',sans-serif;font-size:20px;
+  letter-spacing:3px;margin-bottom:12px;
+}
+.board-col-header.red{color:#D03838;}
+.board-col-header.blue{color:#4888BF;}
+.board-card{
+  background:#fff;border:1px solid #E8E4E0;
+  padding:16px 20px;margin-bottom:8px;
+  opacity:0;animation:fadeUp 0.4s ease forwards;
+}
+.board-card:nth-child(1){animation-delay:0.05s;}
+.board-card:nth-child(2){animation-delay:0.1s;}
+.board-card:nth-child(3){animation-delay:0.15s;}
+.board-card:nth-child(4){animation-delay:0.2s;}
+.board-card:nth-child(5){animation-delay:0.25s;}
+.board-card .card-logic{
+  font-weight:300;font-size:13px;line-height:1.6;color:#2D2926;
+}
+.board-card .card-conf{
+  margin-top:6px;font-family:'Bebas Neue',sans-serif;
+  font-size:16px;color:#9A9590;letter-spacing:1px;
+}
+.board-card .card-meta{
+  margin-top:8px;font-weight:200;font-size:10px;
+  letter-spacing:1px;color:#B0ACA6;
+}
+.board-card .card-votes{
+  display:flex;gap:12px;margin-top:10px;
+}
+.vote-btn{
+  display:flex;align-items:center;gap:4px;
+  padding:4px 10px;border:1px solid #E8E4E0;
+  background:#FAF8F6;cursor:pointer;
+  font-family:'Raleway',sans-serif;font-weight:300;
+  font-size:11px;color:#9A9590;
+  transition:all 0.2s;
+}
+.vote-btn:hover{border-color:#C8C4BE;color:#2D2926;}
+.vote-btn.active-up{background:#2D2926;color:#F5F2EE;border-color:#2D2926;}
+.vote-btn.active-down{background:#8A8580;color:#F5F2EE;border-color:#8A8580;}
+.vote-btn .vote-icon{font-size:13px;}
+.vote-btn .vote-count{font-family:'Bebas Neue',sans-serif;font-size:14px;}
+.board-empty{
+  font-weight:200;font-size:12px;color:#C8C4BE;
+  letter-spacing:1px;padding:20px 0;
+}
+
+.board-total{
+  text-align:center;margin-top:16px;
+  font-weight:200;font-size:10px;letter-spacing:3px;
+  text-transform:uppercase;color:#B0ACA6;
+}
+
+/* ── FOOTER ── */
+.footer{
+  text-align:center;padding:12px;
+  font-weight:200;font-size:9px;letter-spacing:3px;color:#B0ACA6;
+  text-transform:uppercase;
+}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(12px);}
+  to{opacity:1;transform:translateY(0);}
+}
+</style>
+</head>
+<body>
+
+<!-- menu button -->
+<button class="menu-btn" id="menu-btn">
+  <span></span><span></span><span></span>
+</button>
+
+<!-- sidebar -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<nav class="sidebar" id="sidebar">
+  <button class="sidebar-close" id="sidebar-close">&times;</button>
+  <div class="sidebar-brand">Fate Catcher</div>
+  <div style="font-weight:200;font-size:9px;letter-spacing:2px;color:#B0ACA6;margin-bottom:24px;cursor:pointer;text-transform:uppercase;" onclick="localStorage.removeItem('fc_token');localStorage.removeItem('fc_user_id');localStorage.removeItem('fc_user_email');window.location.href='login.html';">Logout</div>
+  <ul class="sidebar-nav">
+    <li><a href="FateCatcher.html">Home</a></li>
+    <li><a href="quests.html">Quests</a></li>
+    <li><a href="community.html">Community</a></li>
+    <li><a href="#">Menu 4</a></li>
+  </ul>
+</nav>
+
+<div class="header">
+  <div class="brand-name">Fate Catcher</div>
+  <div class="brand-rule"></div>
+  <div class="title">Community Board</div>
+  <div class="subtitle">See what the crowd is thinking</div>
+</div>
+
+<div class="content">
+  <div class="board-section" id="board-section">
+    <div class="board-columns">
+      <div class="board-col">
+        <div class="board-col-header red">RED</div>
+        <div id="board-red"><div class="board-empty">Loading...</div></div>
+      </div>
+      <div class="board-col">
+        <div class="board-col-header blue">BLUE</div>
+        <div id="board-blue"><div class="board-empty">Loading...</div></div>
+      </div>
+    </div>
+    <div class="board-total"><span id="total-count">0</span> submissions</div>
+  </div>
+</div>
+
+<div class="footer">Fate Catcher &mdash; The future belongs to those who see it first</div>
+
+<script>
+/* ── auth guard ── */
+const FC_TOKEN = localStorage.getItem('fc_token');
+if (!FC_TOKEN) { window.location.href = 'login.html'; }
+function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + FC_TOKEN }; }
+
+/* ── sidebar toggle ── */
+const menuBtn = document.getElementById('menu-btn');
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+const sidebarClose = document.getElementById('sidebar-close');
+
+function openSidebar(){ sidebar.classList.add('open'); sidebarOverlay.classList.add('open'); }
+function closeSidebar(){ sidebar.classList.remove('open'); sidebarOverlay.classList.remove('open'); }
+
+menuBtn.addEventListener('click', openSidebar);
+sidebarOverlay.addEventListener('click', closeSidebar);
+sidebarClose.addEventListener('click', closeSidebar);
+
+/* ── load board ── */
+fetch('/api/board-all', { headers: { 'Authorization': 'Bearer ' + FC_TOKEN } })
+  .then(r => r.json())
+  .then(data => {
+    const entries = data.entries || [];
+    if (entries.length === 0) {
+      document.getElementById('board-red').innerHTML = '<div class="board-empty">No entries yet</div>';
+      document.getElementById('board-blue').innerHTML = '<div class="board-empty">No entries yet</div>';
+      return;
+    }
+
+    document.getElementById('total-count').textContent = entries.length;
+
+    const redEntries = entries.filter(e => e.side === 'RED');
+    const blueEntries = entries.filter(e => e.side === 'BLUE');
+
+    function formatDate(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mi = String(d.getMinutes()).padStart(2,'0');
+      return `${mm}.${dd} ${hh}:${mi}`;
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    function renderCards(list) {
+      if (list.length === 0) return '<div class="board-empty">No entries yet</div>';
+      return list.map(e => `
+        <div class="board-card" data-id="${e.id}">
+          <div class="card-logic">${esc(e.logic)}</div>
+          <div class="card-meta">${formatDate(e.submitted_at)}</div>
+          <div class="card-votes">
+            ${e.is_mine ? '<span style="font-weight:200;font-size:10px;letter-spacing:2px;color:#B0ACA6;">YOUR LOGIC</span>' : `
+            <button class="vote-btn${e.my_vote === 'up' ? ' active-up' : ''}" data-id="${e.id}" data-type="up" onclick="castVote(this)">
+              <span class="vote-icon">&#9650;</span>
+              <span class="vote-count">${e.up || 0}</span>
+            </button>
+            <button class="vote-btn${e.my_vote === 'down' ? ' active-down' : ''}" data-id="${e.id}" data-type="down" onclick="castVote(this)">
+              <span class="vote-icon">&#9660;</span>
+              <span class="vote-count">${e.down || 0}</span>
+            </button>`}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('board-red').innerHTML = renderCards(redEntries);
+    document.getElementById('board-blue').innerHTML = renderCards(blueEntries);
+  });
+
+function castVote(btn) {
+  const subId = btn.dataset.id;
+  const voteType = btn.dataset.type;
+  const isActive = btn.classList.contains('active-up') || btn.classList.contains('active-down');
+  const action = isActive ? 'cancel' : voteType;
+
+  fetch('/api/vote', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ submissionId: subId, voteType: action })
+  })
+  .then(r => r.json())
+  .then(() => {
+    const countEl = btn.querySelector('.vote-count');
+    const sibling = btn.parentElement.querySelector(`[data-type="${voteType === 'up' ? 'down' : 'up'}"]`);
+    if (isActive) {
+      countEl.textContent = Math.max(0, Number(countEl.textContent) - 1);
+      btn.classList.remove('active-up', 'active-down');
+    } else {
+      if (sibling && (sibling.classList.contains('active-up') || sibling.classList.contains('active-down'))) {
+        const sibCount = sibling.querySelector('.vote-count');
+        sibCount.textContent = Math.max(0, Number(sibCount.textContent) - 1);
+        sibling.classList.remove('active-up', 'active-down');
+      }
+      countEl.textContent = Number(countEl.textContent) + 1;
+      btn.classList.add(voteType === 'up' ? 'active-up' : 'active-down');
+    }
+  });
+}
+</script>
+</body>
+</html>

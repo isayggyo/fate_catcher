@@ -201,6 +201,52 @@ body::before{
 .submit-btn.blue-bg{background:#4888BF;}
 .submit-btn.blue-bg:hover{background:#3a72a0;}
 
+/* ── CONFIRM MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(45,41,38,0.55);
+  display:none;align-items:center;justify-content:center;
+}
+.modal-overlay.visible{display:flex;}
+.modal-box{
+  background:#F5F2EE;border:1px solid #E8E4E0;
+  padding:40px 48px;max-width:380px;width:90%;text-align:center;
+}
+.modal-title{
+  font-family:'Bebas Neue',sans-serif;font-size:20px;
+  letter-spacing:4px;color:#2D2926;margin-bottom:24px;
+}
+.modal-side{
+  font-family:'Bebas Neue',sans-serif;font-size:48px;
+  letter-spacing:4px;line-height:1;margin-bottom:8px;
+}
+.modal-side.red{color:#D03838;}
+.modal-side.blue{color:#4888BF;}
+.modal-side-desc{
+  font-family:'Playfair Display',serif;font-size:22px;
+  color:#2D2926;line-height:1.3;margin-bottom:20px;
+  font-style:italic;
+}
+.modal-conf{
+  font-family:'Bebas Neue',sans-serif;font-size:36px;
+  color:#2D2926;line-height:1;margin-bottom:24px;
+}
+.modal-conf .unit{font-size:16px;color:#9A9590;vertical-align:super;}
+.modal-rule{
+  width:40px;height:1px;background:#C8C4BE;margin:0 auto 24px;
+}
+.modal-actions{display:flex;gap:12px;justify-content:center;}
+.modal-btn{
+  padding:12px 32px;
+  font-family:'Raleway',sans-serif;font-weight:300;
+  font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  border:1px solid #E8E4E0;cursor:pointer;transition:all 0.25s;
+}
+.modal-btn.cancel{background:#FAF8F6;color:#2D2926;}
+.modal-btn.cancel:hover{background:#E8E4E0;}
+.modal-btn.confirm{background:#2D2926;color:#F5F2EE;border-color:#2D2926;}
+.modal-btn.confirm:hover{background:#1a1816;}
+
 /* ── FOOTER ── */
 .footer{
   text-align:center;padding:12px;
@@ -280,9 +326,29 @@ body::before{
 
 </div>
 
+<!-- confirm modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">Confirm Your Prediction</div>
+    <div class="modal-side" id="modal-side"></div>
+    <div class="modal-side-desc" id="modal-side-desc"></div>
+    <div class="modal-conf"><span id="modal-conf-num"></span><span class="unit">%</span></div>
+    <div class="modal-rule"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="modal-cancel">Cancel</button>
+      <button class="modal-btn confirm" id="modal-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <div class="footer">Fate Catcher &mdash; The future belongs to those who see it first</div>
 
 <script>
+/* ── auth guard ── */
+const FC_TOKEN = localStorage.getItem('fc_token');
+if (!FC_TOKEN) { window.location.href = 'login.html'; }
+function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + FC_TOKEN }; }
+
 const params = new URLSearchParams(window.location.search);
 const questId = params.get('id');
 let currentSide = params.get('side') || 'RED';
@@ -349,41 +415,65 @@ logicText.addEventListener('input', function() {
   logicLen.textContent = this.value.length;
 });
 
-/* ── submit ── */
+/* ── submit with confirm modal ── */
+const modalOverlay = document.getElementById('modal-overlay');
+const modalSide = document.getElementById('modal-side');
+const modalConfNum = document.getElementById('modal-conf-num');
+const modalCancel = document.getElementById('modal-cancel');
+const modalConfirm = document.getElementById('modal-confirm');
+
 submitBtn.addEventListener('click', function() {
   if (!selectedConf) return;
   if (logicText.value.trim().length < 30) {
     logicText.focus();
     return;
   }
+  /* show modal */
+  modalSide.textContent = currentSide;
+  modalSide.className = 'modal-side ' + currentSide.toLowerCase();
+  document.getElementById('modal-side-desc').textContent = currentSide === 'RED' ? redDesc : blueDesc;
+  modalConfNum.textContent = selectedConf;
+  modalOverlay.classList.add('visible');
+});
+
+modalCancel.addEventListener('click', () => {
+  modalOverlay.classList.remove('visible');
+});
+
+modalOverlay.addEventListener('click', (e) => {
+  if (e.target === modalOverlay) modalOverlay.classList.remove('visible');
+});
+
+modalConfirm.addEventListener('click', function() {
   const payload = {
     questId: questId,
     side: currentSide,
     confidence: selectedConf,
     logic: logicText.value.trim()
   };
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Submitting...';
+  modalConfirm.disabled = true;
+  modalConfirm.textContent = 'Submitting...';
   fetch('/api/submit', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: authHeaders(),
     body: JSON.stringify(payload)
   })
   .then(r => r.json().then(d => ({ok: r.ok, data: d})))
   .then(({ok, data}) => {
     if (ok) {
-      submitBtn.textContent = 'Submitted';
-      setTimeout(() => { window.location.href = `quest_result.html?id=${encodeURIComponent(questId)}&side=${currentSide}&confidence=${selectedConf}`; }, 1200);
+      modalConfirm.textContent = 'Submitted';
+      const myId = data.entry?.id || '';
+      setTimeout(() => { window.location.href = `quest_result.html?id=${encodeURIComponent(questId)}&side=${currentSide}&confidence=${selectedConf}&my=${myId}`; }, 800);
     } else {
       alert(data.error || 'Submit failed');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit';
+      modalConfirm.disabled = false;
+      modalConfirm.textContent = 'Confirm';
     }
   })
   .catch(() => {
     alert('Network error');
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Submit';
+    modalConfirm.disabled = false;
+    modalConfirm.textContent = 'Confirm';
   });
 });
 </script>
