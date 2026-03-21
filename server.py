@@ -245,11 +245,12 @@ def vote():
 
 # ── PAGES ─────────────────────────────────────────────
 
-BLOCKED_FILES = {'.env', '.gitignore', 'server.py', '.git'}
+ALLOWED_EXT = {'.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.json'}
 
 @app.route("/<path:filename>")
 def static_files(filename):
-    if filename.split("/")[0] in BLOCKED_FILES or filename.startswith("."):
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ALLOWED_EXT or filename.startswith("."):
         return jsonify({"error": "Not found"}), 404
     return send_from_directory(".", filename)
 
