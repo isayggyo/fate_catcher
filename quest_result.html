@@ -227,6 +227,16 @@ body::before{
   margin-top:48px;
 }
 
+.header-credit{
+  position:fixed;top:28px;right:28px;z-index:100;
+  font-family:'Bebas Neue',sans-serif;font-size:14px;
+  letter-spacing:3px;color:#2D2926;
+  display:flex;align-items:center;gap:6px;
+}
+.header-credit .cr-label{
+  font-family:'Raleway',sans-serif;font-weight:200;font-size:9px;
+  letter-spacing:2px;color:#B0ACA6;text-transform:uppercase;
+}
 .footer{
   text-align:center;padding:12px;
   font-weight:200;font-size:9px;letter-spacing:3px;color:#B0ACA6;
@@ -240,6 +250,7 @@ body::before{
   <span class="back-arrow">&larr;</span>
   Quests
 </a>
+<div class="header-credit"><span class="cr-label">Credit</span> <span id="header-balance">—</span></div>
 
 <div class="header">
   <div class="brand-name">Fate Catcher</div>
@@ -321,6 +332,11 @@ body::before{
 const FC_TOKEN = localStorage.getItem('fc_token');
 if (!FC_TOKEN) { window.location.href = 'login.html'; }
 function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + FC_TOKEN }; }
+
+/* ── load credits ── */
+fetch('/api/credits', { headers: { 'Authorization': 'Bearer ' + FC_TOKEN } })
+  .then(r => r.json())
+  .then(d => { document.getElementById('header-balance').textContent = d.balance; });
 
 const params = new URLSearchParams(window.location.search);
 const questId = params.get('id');

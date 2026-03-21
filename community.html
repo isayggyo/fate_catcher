@@ -68,6 +68,25 @@ body::before{
   transition:color 0.2s;
 }
 .sidebar-nav a:hover{color:#2D2926;}
+.sidebar-credit{
+  font-family:'Bebas Neue',sans-serif;font-size:14px;
+  letter-spacing:3px;color:#2D2926;margin-bottom:16px;
+}
+.sidebar-credit .cr-label{
+  font-family:'Raleway',sans-serif;font-weight:200;font-size:9px;
+  letter-spacing:2px;color:#B0ACA6;text-transform:uppercase;
+  display:block;margin-bottom:2px;
+}
+.header-credit{
+  position:fixed;top:28px;right:28px;z-index:100;
+  font-family:'Bebas Neue',sans-serif;font-size:14px;
+  letter-spacing:3px;color:#2D2926;
+  display:flex;align-items:center;gap:6px;
+}
+.header-credit .cr-label{
+  font-family:'Raleway',sans-serif;font-weight:200;font-size:9px;
+  letter-spacing:2px;color:#B0ACA6;text-transform:uppercase;
+}
 
 /* ── HEADER ── */
 .header{
@@ -182,12 +201,14 @@ body::before{
 <button class="menu-btn" id="menu-btn">
   <span></span><span></span><span></span>
 </button>
+<div class="header-credit"><span class="cr-label">Credit</span> <span id="header-balance">—</span></div>
 
 <!-- sidebar -->
 <div class="sidebar-overlay" id="sidebar-overlay"></div>
 <nav class="sidebar" id="sidebar">
   <button class="sidebar-close" id="sidebar-close">&times;</button>
   <div class="sidebar-brand">Fate Catcher</div>
+  <div class="sidebar-credit"><span class="cr-label">Credit</span><span id="sidebar-balance">—</span></div>
   <div style="font-weight:200;font-size:9px;letter-spacing:2px;color:#B0ACA6;margin-bottom:24px;cursor:pointer;text-transform:uppercase;" onclick="localStorage.removeItem('fc_token');localStorage.removeItem('fc_user_id');localStorage.removeItem('fc_user_email');window.location.href='login.html';">Logout</div>
   <ul class="sidebar-nav">
     <li><a href="FateCatcher.html">Home</a></li>
@@ -227,6 +248,14 @@ body::before{
 const FC_TOKEN = localStorage.getItem('fc_token');
 if (!FC_TOKEN) { window.location.href = 'login.html'; }
 function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + FC_TOKEN }; }
+
+/* ── load credits ── */
+fetch('/api/credits', { headers: { 'Authorization': 'Bearer ' + FC_TOKEN } })
+  .then(r => r.json())
+  .then(d => {
+    document.getElementById('header-balance').textContent = d.balance;
+    document.getElementById('sidebar-balance').textContent = d.balance;
+  });
 
 /* ── sidebar toggle ── */
 const menuBtn = document.getElementById('menu-btn');

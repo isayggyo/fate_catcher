@@ -11,7 +11,8 @@ load_dotenv()
 app = Flask(__name__, static_folder=".", static_url_path="")
 CORS(app)
 
-supabase = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_KEY"])
+supabase = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+supabase_auth = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_ANON_KEY"])
 
 
 # ── AUTH ──────────────────────────────────────────────
@@ -24,7 +25,7 @@ def login():
     if not email or not password:
         return jsonify({"error": "Email and password required"}), 400
     try:
-        res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        res = supabase_auth.auth.sign_in_with_password({"email": email, "password": password})
         return jsonify({
             "access_token": res.session.access_token,
             "user_id": res.user.id,
@@ -42,13 +43,41 @@ def require_auth(f):
             return jsonify({"error": "Authorization required"}), 401
         token = auth_header[7:]
         try:
-            user = supabase.auth.get_user(token)
+            user = supabase_auth.auth.get_user(token)
             request.user_id = user.user.id
             request.user_email = user.user.email
         except Exception:
             return jsonify({"error": "Invalid or expired token"}), 401
         return f(*args, **kwargs)
     return decorated
+
+
+# ── CREDITS ───────────────────────────────────────────
+
+def _get_or_create_credits(user_id):
+    """잔액 조회, 없으면 100으로 생성 + signup_bonus 로그."""
+    row = supabase.table("user_credits").select("balance").eq("user_id", str(user_id)).execute().data
+    if row:
+        return row[0]["balance"]
+    supabase.table("user_credits").insert({"user_id": str(user_id), "balance": 100}).execute()
+    supabase.table("credit_log").insert({"user_id": str(user_id), "amount": 100, "reason": "signup_bonus"}).execute()
+    return 100
+
+
+def _adjust_credits(user_id, amount, reason):
+    """잔액 변경 + credit_log 기록. 변경 후 잔액 반환."""
+    current = _get_or_create_credits(user_id)
+    new_balance = current + amount
+    supabase.table("user_credits").update({"balance": new_balance}).eq("user_id", str(user_id)).execute()
+    supabase.table("credit_log").insert({"user_id": str(user_id), "amount": amount, "reason": reason}).execute()
+    return new_balance
+
+
+@app.route("/api/credits")
+@require_auth
+def credits():
+    balance = _get_or_create_credits(request.user_id)
+    return jsonify({"balance": balance})
 
 
 # ── QUESTS ────────────────────────────────────────────
@@ -83,14 +112,28 @@ def submit():
         # Check for existing submission by this user for this quest
         existing = supabase.table("submissions").select("id").eq("quest_id", quest_id).eq("user_id", str(user_id)).execute().data
         if existing:
-            # Update existing submission
+            # Update existing submission — no credit charge
             supabase.table("submissions").update({
                 "side": side,
                 "confidence": int(confidence),
                 "logic": logic.strip(),
             }).eq("id", existing[0]["id"]).execute()
             updated = supabase.table("submissions").select("*").eq("id", existing[0]["id"]).execute()
-            return jsonify({"ok": True, "entry": updated.data[0], "updated": True}), 200
+            balance = _get_or_create_credits(user_id)
+            return jsonify({"ok": True, "entry": updated.data[0], "updated": True, "balance": balance}), 200
+
+        # Credit check
+        balance = _get_or_create_credits(user_id)
+        if balance < 10:
+            return jsonify({"error": "크레딧이 부족합니다", "balance": balance}), 400
+
+        # Deduct 10 credits for new submission
+        balance = _adjust_credits(user_id, -10, "quest_submit")
+
+        # First-ever submission bonus (+20)
+        all_subs = supabase.table("submissions").select("id").eq("user_id", str(user_id)).execute().data
+        if len(all_subs) == 0:
+            balance = _adjust_credits(user_id, 20, "first_submit_bonus")
 
         row = {
             "quest_id": quest_id,
@@ -102,7 +145,7 @@ def submit():
 
         result = supabase.table("submissions").insert(row).execute()
 
-        return jsonify({"ok": True, "entry": result.data[0]}), 201
+        return jsonify({"ok": True, "entry": result.data[0], "balance": balance}), 201
     except Exception as e:
         import traceback
         traceback.print_exc()

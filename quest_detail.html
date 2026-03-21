@@ -247,6 +247,18 @@ body::before{
 .modal-btn.confirm{background:#2D2926;color:#F5F2EE;border-color:#2D2926;}
 .modal-btn.confirm:hover{background:#1a1816;}
 
+/* ── CREDIT ── */
+.header-credit{
+  position:fixed;top:28px;right:28px;z-index:100;
+  font-family:'Bebas Neue',sans-serif;font-size:14px;
+  letter-spacing:3px;color:#2D2926;
+  display:flex;align-items:center;gap:6px;
+}
+.header-credit .cr-label{
+  font-family:'Raleway',sans-serif;font-weight:200;font-size:9px;
+  letter-spacing:2px;color:#B0ACA6;text-transform:uppercase;
+}
+
 /* ── FOOTER ── */
 .footer{
   text-align:center;padding:12px;
@@ -261,6 +273,7 @@ body::before{
   <span class="back-arrow">&larr;</span>
   Quests
 </a>
+<div class="header-credit"><span class="cr-label">Credit</span> <span id="header-balance">—</span></div>
 
 <div class="header">
   <div class="brand-name">Fate Catcher</div>
@@ -349,6 +362,15 @@ const FC_TOKEN = localStorage.getItem('fc_token');
 if (!FC_TOKEN) { window.location.href = 'login.html'; }
 function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + FC_TOKEN }; }
 
+/* ── load credits ── */
+let userBalance = 0;
+fetch('/api/credits', { headers: { 'Authorization': 'Bearer ' + FC_TOKEN } })
+  .then(r => r.json())
+  .then(d => {
+    userBalance = d.balance;
+    document.getElementById('header-balance').textContent = d.balance;
+  });
+
 const params = new URLSearchParams(window.location.search);
 const questId = params.get('id');
 let currentSide = params.get('side') || 'RED';
@@ -428,6 +450,10 @@ submitBtn.addEventListener('click', function() {
     logicText.focus();
     return;
   }
+  if (userBalance < 10) {
+    alert('크레딧이 부족합니다 (필요: 10, 현재: ' + userBalance + ')');
+    return;
+  }
   /* show modal */
   modalSide.textContent = currentSide;
   modalSide.className = 'modal-side ' + currentSide.toLowerCase();
@@ -461,6 +487,10 @@ modalConfirm.addEventListener('click', function() {
   .then(r => r.json().then(d => ({ok: r.ok, data: d})))
   .then(({ok, data}) => {
     if (ok) {
+      if (data.balance !== undefined) {
+        userBalance = data.balance;
+        document.getElementById('header-balance').textContent = data.balance;
+      }
       modalConfirm.textContent = 'Submitted';
       const myId = data.entry?.id || '';
       setTimeout(() => { window.location.href = `quest_result.html?id=${encodeURIComponent(questId)}&side=${currentSide}&confidence=${selectedConf}&my=${myId}`; }, 800);
