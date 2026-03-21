@@ -8,7 +8,7 @@ import os, datetime
 
 load_dotenv()
 
-app = Flask(__name__, static_folder=".", static_url_path="")
+app = Flask(__name__, static_folder=None)
 CORS(app)
 
 supabase = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
@@ -53,24 +53,21 @@ def require_auth(f):
 
 
 # ── CREDITS ───────────────────────────────────────────
+# 모든 크레딧 변동은 반드시 이 두 함수를 통해서만 처리.
+# 실제 로직은 PostgreSQL RPC 함수에서 atomic하게 실행됨.
 
 def _get_or_create_credits(user_id):
-    """잔액 조회, 없으면 100으로 생성 + signup_bonus 로그."""
-    row = supabase.table("user_credits").select("balance").eq("user_id", str(user_id)).execute().data
-    if row:
-        return row[0]["balance"]
-    supabase.table("user_credits").insert({"user_id": str(user_id), "balance": 100}).execute()
-    supabase.table("credit_log").insert({"user_id": str(user_id), "amount": 100, "reason": "signup_bonus"}).execute()
-    return 100
+    """잔액 조회 (없으면 DB에서 자동 생성 + signup_bonus 로그)."""
+    return supabase.rpc("get_or_create_credits", {"p_user_id": str(user_id)}).execute().data
 
 
 def _adjust_credits(user_id, amount, reason):
-    """잔액 변경 + credit_log 기록. 변경 후 잔액 반환."""
-    current = _get_or_create_credits(user_id)
-    new_balance = current + amount
-    supabase.table("user_credits").update({"balance": new_balance}).eq("user_id", str(user_id)).execute()
-    supabase.table("credit_log").insert({"user_id": str(user_id), "amount": amount, "reason": reason}).execute()
-    return new_balance
+    """잔액 변경 + 로그 기록. DB 레벨 atomic 처리. 변경 후 잔액 반환."""
+    return supabase.rpc("adjust_credits", {
+        "p_user_id": str(user_id),
+        "p_amount": amount,
+        "p_reason": reason,
+    }).execute().data
 
 
 @app.route("/api/credits")
@@ -247,6 +244,14 @@ def vote():
 
 
 # ── PAGES ─────────────────────────────────────────────
+
+BLOCKED_FILES = {'.env', '.gitignore', 'server.py', '.git'}
+
+@app.route("/<path:filename>")
+def static_files(filename):
+    if filename.split("/")[0] in BLOCKED_FILES or filename.startswith("."):
+        return jsonify({"error": "Not found"}), 404
+    return send_from_directory(".", filename)
 
 @app.route("/")
 def index():

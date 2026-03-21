@@ -445,6 +445,7 @@ const modalCancel = document.getElementById('modal-cancel');
 const modalConfirm = document.getElementById('modal-confirm');
 
 submitBtn.addEventListener('click', function() {
+  if (submitBtn.disabled) return;
   if (!selectedConf) return;
   if (logicText.value.trim().length < 30) {
     logicText.focus();
@@ -454,6 +455,7 @@ submitBtn.addEventListener('click', function() {
     alert('크레딧이 부족합니다 (필요: 10, 현재: ' + userBalance + ')');
     return;
   }
+  submitBtn.disabled = true;
   /* show modal */
   modalSide.textContent = currentSide;
   modalSide.className = 'modal-side ' + currentSide.toLowerCase();
@@ -464,10 +466,14 @@ submitBtn.addEventListener('click', function() {
 
 modalCancel.addEventListener('click', () => {
   modalOverlay.classList.remove('visible');
+  submitBtn.disabled = false;
 });
 
 modalOverlay.addEventListener('click', (e) => {
-  if (e.target === modalOverlay) modalOverlay.classList.remove('visible');
+  if (e.target === modalOverlay) {
+    modalOverlay.classList.remove('visible');
+    submitBtn.disabled = false;
+  }
 });
 
 modalConfirm.addEventListener('click', function() {
@@ -498,12 +504,14 @@ modalConfirm.addEventListener('click', function() {
       alert(data.error || 'Submit failed');
       modalConfirm.disabled = false;
       modalConfirm.textContent = 'Confirm';
+      submitBtn.disabled = false;
     }
   })
   .catch(() => {
     alert('Network error');
     modalConfirm.disabled = false;
     modalConfirm.textContent = 'Confirm';
+    submitBtn.disabled = false;
   });
 });
 </script>
