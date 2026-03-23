@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
+load_dotenv()
+
 from supabase import create_client
 from functools import wraps
 from collections import defaultdict
 import os, datetime
-
-load_dotenv()
+from auditor import audit
 
 app = Flask(__name__, static_folder=None)
 CORS(app)
@@ -75,6 +76,14 @@ def _adjust_credits(user_id, amount, reason):
 def credits():
     balance = _get_or_create_credits(request.user_id)
     return jsonify({"balance": balance})
+
+
+# ── ANNOUNCEMENTS ─────────────────────────────────────
+
+@app.route("/api/announcements")
+def announcements():
+    rows = supabase.table("announcements").select("*").eq("is_active", True).order("created_at", desc=True).execute().data
+    return jsonify({"announcements": rows})
 
 
 # ── QUESTS ────────────────────────────────────────────
@@ -241,6 +250,76 @@ def vote():
         except Exception:
             supabase.table("votes").update({"vote_type": vote_type}).eq("submission_id", submission_id).eq("user_id", user_id).execute()
     return jsonify({"ok": True}), 201
+
+
+# ── REPLIES ───────────────────────────────────────────
+
+@app.route("/api/replies/<submission_id>")
+def get_replies(submission_id):
+    user_id = _get_user_id_from_token()
+    rows = supabase.table("replies").select("id,submission_id,parent_id,user_id,content,created_at").eq("submission_id", submission_id).order("created_at").execute().data
+    for r in rows:
+        r["is_mine"] = (r.get("user_id") == user_id) if user_id else False
+        r.pop("user_id", None)
+    # 트리 구조로 변환
+    top = [r for r in rows if r["parent_id"] is None]
+    children = {}
+    for r in rows:
+        if r["parent_id"] is not None:
+            children.setdefault(r["parent_id"], []).append(r)
+    for t in top:
+        t["children"] = children.get(t["id"], [])
+    return jsonify({"replies": top, "total": len(rows)})
+
+
+@app.route("/api/reply", methods=["POST"])
+@require_auth
+def post_reply():
+    body = request.get_json(force=True)
+    submission_id = body.get("submissionId")
+    content = (body.get("content") or "").strip()
+    parent_id = body.get("parentId")
+
+    if not submission_id:
+        return jsonify({"error": "submissionId required"}), 400
+    if len(content) < 5:
+        return jsonify({"error": "답글은 최소 5자 이상이어야 합니다"}), 400
+
+    user_id = request.user_id
+    # 크레딧 차감 로직 (현재 0)
+    _adjust_credits(user_id, 0, "reply")
+
+    row = {
+        "submission_id": submission_id,
+        "content": content,
+        "user_id": str(user_id),
+    }
+    if parent_id:
+        row["parent_id"] = parent_id
+
+    result = supabase.table("replies").insert(row).execute()
+    reply = result.data[0]
+    reply["is_mine"] = True
+    reply.pop("user_id", None)
+    return jsonify({"ok": True, "reply": reply}), 201
+
+
+# ── AUDIT ─────────────────────────────────────────────
+
+@app.route("/api/audit", methods=["POST"])
+@require_auth
+def audit_logic():
+    body = request.get_json(force=True)
+    logic = (body.get("logic") or "").strip()
+    if len(logic) < 30:
+        return jsonify({"error": "감사 대상 텍스트가 너무 짧습니다 (최소 30자)"}), 400
+    try:
+        report = audit(logic)
+        return jsonify(report.model_dump()), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "감사 처리 중 오류가 발생했습니다"}), 500
 
 
 # ── PAGES ─────────────────────────────────────────────

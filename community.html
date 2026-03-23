@@ -189,6 +189,60 @@ body::before{
   text-transform:uppercase;
 }
 
+/* ── REPLIES ── */
+.reply-toggle{
+  margin-top:8px;
+  font-weight:200;font-size:10px;letter-spacing:2px;
+  color:#9A9590;cursor:pointer;text-transform:uppercase;
+  transition:color 0.2s;
+}
+.reply-toggle:hover{color:#2D2926;}
+.reply-section{
+  display:none;margin-top:12px;
+  border-top:1px solid #F0ECE8;padding-top:12px;
+}
+.reply-section.open{display:block;}
+.reply-item{
+  padding:8px 0 8px 12px;
+  border-left:2px solid #E8E4E0;
+  margin-bottom:6px;
+}
+.reply-item .reply-content{
+  font-weight:300;font-size:12px;line-height:1.5;color:#2D2926;
+}
+.reply-item .reply-meta{
+  font-weight:200;font-size:9px;letter-spacing:1px;color:#B0ACA6;margin-top:4px;
+}
+.reply-item .reply-meta .reply-btn{
+  color:#9A9590;cursor:pointer;margin-left:8px;
+  transition:color 0.2s;
+}
+.reply-item .reply-meta .reply-btn:hover{color:#2D2926;}
+.reply-child{
+  margin-left:16px;
+  border-left-color:#F0ECE8;
+}
+.reply-input{
+  display:flex;gap:8px;margin-top:8px;
+}
+.reply-input textarea{
+  flex:1;resize:none;border:1px solid #E8E4E0;
+  background:#FAF8F6;padding:8px 10px;
+  font-family:'Raleway',sans-serif;font-weight:300;font-size:12px;
+  color:#2D2926;outline:none;
+  transition:border-color 0.2s;
+  rows:2;
+}
+.reply-input textarea:focus{border-color:#C8C4BE;}
+.reply-input button{
+  padding:6px 14px;border:1px solid #2D2926;
+  background:#2D2926;color:#F5F2EE;cursor:pointer;
+  font-family:'Raleway',sans-serif;font-weight:300;font-size:10px;
+  letter-spacing:2px;text-transform:uppercase;
+  transition:all 0.2s;align-self:flex-end;
+}
+.reply-input button:hover{background:#5A5650;border-color:#5A5650;}
+
 @keyframes fadeUp{
   from{opacity:0;transform:translateY(12px);}
   to{opacity:1;transform:translateY(0);}
@@ -296,8 +350,6 @@ fetch('/api/board-all', { headers: { 'Authorization': 'Bearer ' + FC_TOKEN } })
       return `${mm}.${dd} ${hh}:${mi}`;
     }
 
-    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-
     function renderCards(list) {
       if (list.length === 0) return '<div class="board-empty">No entries yet</div>';
       return list.map(e => `
@@ -315,6 +367,14 @@ fetch('/api/board-all', { headers: { 'Authorization': 'Bearer ' + FC_TOKEN } })
               <span class="vote-count">${e.down || 0}</span>
             </button>`}
           </div>
+          <div class="reply-toggle" onclick="toggleReplies(this, '${e.id}')">Reply</div>
+          <div class="reply-section" id="replies-${e.id}">
+            <div class="reply-list"></div>
+            <div class="reply-input">
+              <textarea rows="2" placeholder="답글을 입력하세요 (최소 5자)"></textarea>
+              <button onclick="postReply(this, '${e.id}', null)">Send</button>
+            </div>
+          </div>
         </div>
       `).join('');
     }
@@ -322,6 +382,104 @@ fetch('/api/board-all', { headers: { 'Authorization': 'Bearer ' + FC_TOKEN } })
     document.getElementById('board-red').innerHTML = renderCards(redEntries);
     document.getElementById('board-blue').innerHTML = renderCards(blueEntries);
   });
+
+/* ── replies ── */
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function formatReplyDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mi = String(d.getMinutes()).padStart(2,'0');
+  return `${mm}.${dd} ${hh}:${mi}`;
+}
+
+function renderReplyItem(r, subId) {
+  const children = (r.children || []).map(c => `
+    <div class="reply-item reply-child">
+      <div class="reply-content">${esc(c.content)}</div>
+      <div class="reply-meta">익명 · ${formatReplyDate(c.created_at)}</div>
+    </div>
+  `).join('');
+  return `
+    <div class="reply-item" data-reply-id="${r.id}">
+      <div class="reply-content">${esc(r.content)}</div>
+      <div class="reply-meta">익명 · ${formatReplyDate(r.created_at)} <span class="reply-btn" onclick="showChildInput(this, '${subId}', ${r.id})">답글</span></div>
+      ${children}
+      <div class="child-input" style="display:none;margin-left:16px;margin-top:6px;">
+        <div class="reply-input">
+          <textarea rows="1" placeholder="대댓글 (최소 5자)"></textarea>
+          <button onclick="postReply(this, '${subId}', ${r.id})">Send</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleReplies(el, subId) {
+  const section = document.getElementById('replies-' + subId);
+  const isOpen = section.classList.contains('open');
+  if (isOpen) {
+    section.classList.remove('open');
+    el.textContent = 'Reply';
+    return;
+  }
+  section.classList.add('open');
+  el.textContent = 'Hide';
+  loadReplies(subId);
+}
+
+function loadReplies(subId) {
+  fetch('/api/replies/' + subId, { headers: { 'Authorization': 'Bearer ' + FC_TOKEN } })
+    .then(r => r.json())
+    .then(d => {
+      const section = document.getElementById('replies-' + subId);
+      const listEl = section.querySelector('.reply-list');
+      const replies = d.replies || [];
+      if (replies.length === 0) {
+        listEl.innerHTML = '<div style="font-weight:200;font-size:11px;color:#C8C4BE;margin-bottom:8px;">아직 답글이 없습니다</div>';
+      } else {
+        listEl.innerHTML = replies.map(r => renderReplyItem(r, subId)).join('');
+      }
+      // 토글 버튼에 개수 표시
+      const toggle = section.previousElementSibling;
+      toggle.textContent = d.total > 0 ? `Hide (${d.total})` : 'Hide';
+    });
+}
+
+function showChildInput(el, subId, parentId) {
+  const replyItem = el.closest('.reply-item');
+  const childInput = replyItem.querySelector('.child-input');
+  childInput.style.display = childInput.style.display === 'none' ? 'block' : 'none';
+}
+
+function postReply(btn, subId, parentId) {
+  const inputArea = btn.closest('.reply-input');
+  const textarea = inputArea.querySelector('textarea');
+  const content = textarea.value.trim();
+  if (content.length < 5) { alert('답글은 최소 5자 이상이어야 합니다'); return; }
+
+  btn.disabled = true;
+  fetch('/api/reply', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ submissionId: subId, content: content, parentId: parentId })
+  })
+  .then(r => r.json())
+  .then(d => {
+    btn.disabled = false;
+    if (d.error) { alert(d.error); return; }
+    textarea.value = '';
+    if (parentId) {
+      const childInput = btn.closest('.child-input');
+      if (childInput) childInput.style.display = 'none';
+    }
+    loadReplies(subId);
+  })
+  .catch(() => { btn.disabled = false; });
+}
 
 function castVote(btn) {
   const subId = btn.dataset.id;

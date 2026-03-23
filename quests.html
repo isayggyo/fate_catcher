@@ -293,6 +293,27 @@ body::before{
   letter-spacing:2px;color:#B0ACA6;text-transform:uppercase;
 }
 
+/* ── ANNOUNCEMENTS ── */
+.announce-bar{
+  background:linear-gradient(135deg,#C8A96E 0%,#E8D5A8 100%);
+  color:#2D2926;
+  padding:16px 20px;margin-bottom:16px;
+  border:1px solid #C8A96E;
+  position:relative;
+  opacity:0;animation:fadeUp 0.4s ease forwards;
+}
+.announce-bar .ann-title{
+  font-family:'Bebas Neue',sans-serif;font-size:14px;
+  letter-spacing:3px;color:#5A3E1B;margin-bottom:4px;
+}
+.announce-bar .ann-content{
+  font-weight:400;font-size:13px;line-height:1.5;color:#3D2E1A;
+}
+.announce-bar .ann-date{
+  font-weight:200;font-size:10px;letter-spacing:1px;color:#8A7550;
+  margin-top:6px;
+}
+
 @keyframes fadeUp{
   from{opacity:0;transform:translateY(16px);}
   to{opacity:1;transform:translateY(0);}
@@ -331,6 +352,7 @@ body::before{
 
 <div class="quests-layout">
   <div class="quests-main">
+    <div id="announcements"></div>
     <div class="quests-section" id="quests"></div>
   </div>
   <div class="quests-side">
@@ -369,6 +391,23 @@ fetch('/api/credits', { headers: { 'Authorization': 'Bearer ' + FC_TOKEN } })
   .then(d => {
     document.getElementById('header-balance').textContent = d.balance;
     document.getElementById('sidebar-balance').textContent = d.balance;
+  });
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+/* ── load announcements ── */
+fetch('/api/announcements')
+  .then(r => r.json())
+  .then(d => {
+    const box = document.getElementById('announcements');
+    (d.announcements || []).forEach(a => {
+      const dt = new Date(a.created_at);
+      const dateStr = `${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`;
+      const el = document.createElement('div');
+      el.className = 'announce-bar';
+      el.innerHTML = `<div class="ann-title">${esc(a.title)}</div><div class="ann-content">${esc(a.content || '')}</div><div class="ann-date">${dateStr}</div>`;
+      box.appendChild(el);
+    });
   });
 
 let QUESTS = [];
